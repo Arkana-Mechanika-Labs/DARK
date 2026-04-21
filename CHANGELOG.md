@@ -10,7 +10,7 @@
 - Updated format coverage so `DARKLAND.ALC` is now marked as editable.
 - Improved local release workflow support for the standalone DARK repo.
 
-## 0.9b1
+## 0.9b
 
 - Initial public DARK beta release.
 - Included structured editors for saves, cities, locations, descriptions, items, saints, formulae, enemies, and dialog/message data.
