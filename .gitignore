@@ -12,9 +12,13 @@ env/
 
 build/
 dist/
+release/
 *.spec.bak
 
 *.log
+*.zip
+
+local_build.ps1
 
 .DS_Store
 Thumbs.db

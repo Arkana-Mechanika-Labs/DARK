@@ -1149,16 +1149,19 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._items = []
         self._saints = []
         self._formulae = []
+        self._alchemy = []
         self._original_items = []
         self._original_saints = []
         self._original_formulae = []
+        self._original_alchemy = []
         self._loading = False
         self._dirty = False
+        self._item_combo_syncing = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 10, 14, 10)
         root.setSpacing(8)
-        root.addWidget(_title("Items, Saints & Formulae Editor (DARKLAND.LST / DARKLAND.SNT)"))
+        root.addWidget(_title("Items, Saints, Formulae & Alchemy Editor (DARKLAND.LST / DARKLAND.SNT / DARKLAND.ALC)"))
         root.addWidget(_sep())
 
         self._filter_edit = _make_line("Filter current tab...", min_width=220)
@@ -1170,6 +1173,7 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._tabs.addTab(self._build_items_tab(), "Items")
         self._tabs.addTab(self._build_saints_tab(), "Saints")
         self._tabs.addTab(self._build_formulae_tab(), "Formulae")
+        self._tabs.addTab(self._build_alchemy_tab(), "Alchemy")
         self._tabs.currentChanged.connect(lambda *_args: self._refresh_highlights())
 
         action = QHBoxLayout()
@@ -1181,7 +1185,7 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._undo_btn.setEnabled(False)
         self._undo_btn.clicked.connect(self._undo_selected)
         action.addWidget(self._undo_btn)
-        self._save_btn = QPushButton("Save DARKLAND.LST / DARKLAND.SNT")
+        self._save_btn = QPushButton("Save DARKLAND.LST / DARKLAND.SNT / DARKLAND.ALC")
         self._save_btn.setEnabled(False)
         self._save_btn.clicked.connect(self._save)
         action.addWidget(self._save_btn)
@@ -1223,6 +1227,67 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._formula_table = table
         return table
 
+    def _build_alchemy_tab(self):
+        widget = QWidget()
+        lay = QVBoxLayout(widget)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(8)
+
+        table = QTableWidget(0, 5)
+        table.setHorizontalHeaderLabels(["#", "Formula", "Mystic", "Risk", "Ingredients"])
+        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        table.itemChanged.connect(self._alchemy_table_changed)
+        table.currentCellChanged.connect(self._on_alchemy_select)
+        self._alchemy_table = table
+        lay.addWidget(table)
+
+        detail = QGroupBox("Selected Formula")
+        form = _compact_form_layout(detail)
+
+        self._alchemy_formula_name = QLineEdit()
+        self._alchemy_formula_name.setReadOnly(True)
+        form.addRow("Formula:", self._alchemy_formula_name)
+
+        self._alchemy_desc = QPlainTextEdit()
+        self._alchemy_desc.setFixedHeight(82)
+        self._alchemy_desc.textChanged.connect(self._alchemy_desc_changed)
+        form.addRow("Description:", self._alchemy_desc)
+
+        self._alchemy_mystic = _make_spin(0, 65535, width=96)
+        self._alchemy_mystic.valueChanged.connect(self._alchemy_spin_changed)
+        form.addRow("Mystic #:", self._alchemy_mystic)
+
+        self._alchemy_risk = QComboBox()
+        self._alchemy_risk.addItem("0 - Low", 0)
+        self._alchemy_risk.addItem("1 - Medium", 1)
+        self._alchemy_risk.addItem("2 - High", 2)
+        self._alchemy_risk.currentIndexChanged.connect(self._alchemy_spin_changed)
+        form.addRow("Risk:", self._alchemy_risk)
+
+        ing_box = QGroupBox("Ingredients")
+        ing_grid = QGridLayout(ing_box)
+        ing_grid.addWidget(QLabel("Slot"), 0, 0)
+        ing_grid.addWidget(QLabel("Qty"), 0, 1)
+        ing_grid.addWidget(QLabel("Item"), 0, 2)
+        self._alchemy_qty_spins = []
+        self._alchemy_item_combos = []
+        for slot in range(5):
+            ing_grid.addWidget(QLabel(str(slot + 1)), slot + 1, 0)
+            qty = _make_spin(0, 5, width=72, special_text="none")
+            qty.valueChanged.connect(self._alchemy_ingredient_changed)
+            combo = QComboBox()
+            combo.setMinimumWidth(280)
+            combo.currentIndexChanged.connect(self._alchemy_ingredient_changed)
+            self._alchemy_qty_spins.append(qty)
+            self._alchemy_item_combos.append(combo)
+            ing_grid.addWidget(qty, slot + 1, 1)
+            ing_grid.addWidget(combo, slot + 1, 2)
+        form.addRow("", ing_box)
+
+        lay.addWidget(detail)
+        return widget
+
     def set_dl_path(self, path: str):
         self.dl_path = path
         if path:
@@ -1230,23 +1295,28 @@ class ItemsConverter(QWidget, _DirtyMixin):
 
     def _load(self):
         from vendor.darklands.reader_lst import readData
+        from vendor.darklands.reader_alc import readData as readAlc
 
         self._items, self._saints, self._formulae = readData(self.dl_path)
+        self._alchemy = readAlc(self.dl_path)
         self._original_items = copy.deepcopy(self._items)
         self._original_saints = copy.deepcopy(self._saints)
         self._original_formulae = copy.deepcopy(self._formulae)
+        self._original_alchemy = copy.deepcopy(self._alchemy)
         self._loading = True
         try:
+            self._populate_alchemy_item_choices()
             self._fill_items()
             self._fill_saints()
             self._fill_formulae()
+            self._fill_alchemy()
         finally:
             self._loading = False
         self._dirty = False
         self._save_btn.setEnabled(False)
         self._undo_btn.setEnabled(False)
         self._status_lbl.setText(
-            f"Loaded {len(self._items)} items, {len(self._saints)} saints, {len(self._formulae)} formulae."
+            f"Loaded {len(self._items)} items, {len(self._saints)} saints, {len(self._formulae)} formulae, {len(self._alchemy)} alchemy definitions."
         )
         self._apply_filter()
         self._refresh_highlights()
@@ -1297,6 +1367,76 @@ class ItemsConverter(QWidget, _DirtyMixin):
         if self._formulae:
             self._formula_table.setCurrentCell(0, 1)
 
+    def _fill_alchemy(self):
+        self._alchemy_table.setRowCount(len(self._alchemy))
+        for row in range(len(self._alchemy)):
+            self._sync_alchemy_row(row)
+        if self._alchemy:
+            self._alchemy_table.setCurrentCell(0, 1)
+
+    def _formula_display_name(self, row: int) -> str:
+        if 0 <= row < len(self._formulae):
+            return self._formulae[row].get("name", "")
+        return f"Formula {row}"
+
+    def _risk_label(self, risk: int) -> str:
+        return {0: "Low", 1: "Medium", 2: "High"}.get(int(risk), str(risk))
+
+    def _item_name_by_code(self, code: int) -> str:
+        if 0 <= code < len(self._items):
+            return self._items[code].get("name", f"Item {code}")
+        return f"Item {code}"
+
+    def _ingredient_summary(self, ingredients: list[dict]) -> str:
+        parts = []
+        for ing in ingredients[:5]:
+            qty = int(ing.get("quantity", 0))
+            code = int(ing.get("item_code", 0))
+            if qty <= 0 and code == 0:
+                continue
+            parts.append(f"{qty}x {self._item_name_by_code(code)}")
+        return ", ".join(parts) if parts else "(none)"
+
+    def _sync_alchemy_row(self, row: int):
+        if not (0 <= row < len(self._alchemy)):
+            return
+        formula = self._alchemy[row]
+        values = [
+            str(row),
+            self._formula_display_name(row),
+            str(formula.get("mystic_number", 0)),
+            self._risk_label(int(formula.get("risk_factor", 0))),
+            self._ingredient_summary(formula.get("ingredients", [])),
+        ]
+        for col, val in enumerate(values):
+            cell = self._alchemy_table.item(row, col)
+            if cell is None:
+                cell = QTableWidgetItem()
+                if col in (0, 1, 3, 4):
+                    cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self._alchemy_table.setItem(row, col, cell)
+            cell.setText(val)
+
+    def _populate_alchemy_item_choices(self):
+        self._item_combo_syncing = True
+        try:
+            current_codes = [combo.currentData() for combo in getattr(self, "_alchemy_item_combos", [])]
+            for idx, combo in enumerate(getattr(self, "_alchemy_item_combos", [])):
+                current = current_codes[idx] if idx < len(current_codes) else None
+                combo.blockSignals(True)
+                combo.clear()
+                combo.addItem("(none)", None)
+                for item_idx, item in enumerate(self._items):
+                    combo.addItem(f"{item_idx:03d} - {item.get('name', '')}", item_idx)
+                if current is None:
+                    combo.setCurrentIndex(0)
+                else:
+                    pos = combo.findData(current)
+                    combo.setCurrentIndex(pos if pos >= 0 else 0)
+                combo.blockSignals(False)
+        finally:
+            self._item_combo_syncing = False
+
     def _set_table_item_edited(self, item: QTableWidgetItem | None, edited: bool):
         if item is None:
             return
@@ -1327,6 +1467,36 @@ class ItemsConverter(QWidget, _DirtyMixin):
             self._set_table_item_edited(self._formula_table.item(row, 1), cur.get("name", "") != orig.get("name", ""))
             self._set_table_item_edited(self._formula_table.item(row, 2), cur.get("short_name", "") != orig.get("short_name", ""))
 
+    def _refresh_alchemy_highlights(self):
+        for row in range(self._alchemy_table.rowCount()):
+            cur = self._alchemy[row]
+            orig = self._original_alchemy[row]
+            cur_name = self._formulae[row].get("name", "") if row < len(self._formulae) else self._formula_display_name(row)
+            orig_name = self._original_formulae[row].get("name", "") if row < len(self._original_formulae) else cur_name
+            self._set_table_item_edited(self._alchemy_table.item(row, 1), cur_name != orig_name)
+            self._set_table_item_edited(self._alchemy_table.item(row, 2), cur.get("mystic_number", 0) != orig.get("mystic_number", 0))
+            self._set_table_item_edited(self._alchemy_table.item(row, 3), cur.get("risk_factor", 0) != orig.get("risk_factor", 0))
+            edited = (
+                cur.get("description", "") != orig.get("description", "")
+                or cur.get("ingredients", []) != orig.get("ingredients", [])
+            )
+            self._set_table_item_edited(self._alchemy_table.item(row, 4), edited)
+        row = self._alchemy_table.currentRow()
+        if 0 <= row < len(self._alchemy):
+            cur = self._alchemy[row]
+            orig = self._original_alchemy[row]
+            _set_widget_edited(self._alchemy_desc, cur.get("description", "") != orig.get("description", ""))
+            _set_widget_edited(self._alchemy_mystic, cur.get("mystic_number", 0) != orig.get("mystic_number", 0))
+            _set_widget_edited(self._alchemy_risk, cur.get("risk_factor", 0) != orig.get("risk_factor", 0))
+            for slot, qty_spin in enumerate(self._alchemy_qty_spins):
+                cur_ing = cur.get("ingredients", [])[slot]
+                orig_ing = orig.get("ingredients", [])[slot]
+                _set_widget_edited(qty_spin, int(cur_ing.get("quantity", 0)) != int(orig_ing.get("quantity", 0)))
+                _set_widget_edited(
+                    self._alchemy_item_combos[slot],
+                    int(cur_ing.get("item_code", 0)) != int(orig_ing.get("item_code", 0)),
+                )
+
     def _current_tab(self) -> int:
         return self._tabs.currentIndex()
 
@@ -1338,8 +1508,11 @@ class ItemsConverter(QWidget, _DirtyMixin):
         if tab == 1:
             row = self._saints_table.currentRow()
             return 0 <= row < len(self._saints) and self._saints[row] != self._original_saints[row]
-        row = self._formula_table.currentRow()
-        return 0 <= row < len(self._formulae) and self._formulae[row] != self._original_formulae[row]
+        if tab == 2:
+            row = self._formula_table.currentRow()
+            return 0 <= row < len(self._formulae) and self._formulae[row] != self._original_formulae[row]
+        row = self._alchemy_table.currentRow()
+        return 0 <= row < len(self._alchemy) and self._alchemy[row] != self._original_alchemy[row]
 
     def _refresh_highlights(self):
         was_loading = self._loading
@@ -1348,6 +1521,7 @@ class ItemsConverter(QWidget, _DirtyMixin):
             self._refresh_item_highlights()
             self._refresh_saint_highlights()
             self._refresh_formula_highlights()
+            self._refresh_alchemy_highlights()
             self._undo_btn.setEnabled(self._current_selection_changed())
         finally:
             self._loading = was_loading
@@ -1357,6 +1531,7 @@ class ItemsConverter(QWidget, _DirtyMixin):
             self._items != self._original_items
             or self._saints != self._original_saints
             or self._formulae != self._original_formulae
+            or self._alchemy != self._original_alchemy
         )
         self._save_btn.setEnabled(self._dirty)
         self._status_lbl.setText(text if self._dirty else "No unsaved list changes.")
@@ -1386,6 +1561,14 @@ class ItemsConverter(QWidget, _DirtyMixin):
                 if self._formula_table.item(row, col) is not None
             )
             self._formula_table.setRowHidden(row, bool(needle) and needle not in hay)
+        for row in range(self._alchemy_table.rowCount()):
+            parts = []
+            for col in range(1, self._alchemy_table.columnCount()):
+                item = self._alchemy_table.item(row, col)
+                if item is not None:
+                    parts.append(item.text().lower())
+            desc = self._alchemy[row].get("description", "").lower() if row < len(self._alchemy) else ""
+            self._alchemy_table.setRowHidden(row, bool(needle) and needle not in (" ".join(parts) + " " + desc))
 
     def _items_changed(self, item):
         if self._loading:
@@ -1402,6 +1585,9 @@ class ItemsConverter(QWidget, _DirtyMixin):
                 return
         else:
             self._items[row][key] = item.text()
+        self._populate_alchemy_item_choices()
+        for alc_row in range(len(self._alchemy)):
+            self._sync_alchemy_row(alc_row)
         self._update_dirty_state("Item changes pending save.")
 
     def _saints_changed(self, item):
@@ -1443,7 +1629,83 @@ class ItemsConverter(QWidget, _DirtyMixin):
             self._formulae[row]["short_name"] = item.text()
         else:
             return
+        self._sync_alchemy_row(row)
         self._update_dirty_state("Formula changes pending save.")
+
+    def _alchemy_table_changed(self, item):
+        if self._loading:
+            return
+        row, col = item.row(), item.column()
+        if not (0 <= row < len(self._alchemy)):
+            return
+        if col == 2:
+            try:
+                self._alchemy[row]["mystic_number"] = int(item.text() or "0")
+            except ValueError:
+                return
+            self._sync_alchemy_row(row)
+            self._update_dirty_state("Alchemy changes pending save.")
+
+    def _on_alchemy_select(self, row, _col, _prev_row, _prev_col):
+        if row < 0 or row >= len(self._alchemy):
+            return
+        formula = self._alchemy[row]
+        self._loading = True
+        try:
+            self._alchemy_formula_name.setText(self._formula_display_name(row))
+            self._alchemy_desc.setPlainText(formula.get("description", ""))
+            self._alchemy_mystic.setValue(int(formula.get("mystic_number", 0)))
+            risk_idx = self._alchemy_risk.findData(int(formula.get("risk_factor", 0)))
+            self._alchemy_risk.setCurrentIndex(risk_idx if risk_idx >= 0 else 0)
+            for slot, ing in enumerate(formula.get("ingredients", [])[:5]):
+                qty = int(ing.get("quantity", 0))
+                code = int(ing.get("item_code", 0))
+                self._alchemy_qty_spins[slot].setValue(qty)
+                combo = self._alchemy_item_combos[slot]
+                if qty == 0 and code == 0:
+                    combo.setCurrentIndex(0)
+                else:
+                    pos = combo.findData(code)
+                    combo.setCurrentIndex(pos if pos >= 0 else 0)
+        finally:
+            self._loading = False
+        self._refresh_highlights()
+
+    def _alchemy_desc_changed(self):
+        row = self._alchemy_table.currentRow()
+        if self._loading or row < 0:
+            return
+        self._alchemy[row]["description"] = self._alchemy_desc.toPlainText()
+        self._sync_alchemy_row(row)
+        self._update_dirty_state("Alchemy changes pending save.")
+
+    def _alchemy_spin_changed(self):
+        row = self._alchemy_table.currentRow()
+        if self._loading or row < 0:
+            return
+        self._alchemy[row]["mystic_number"] = int(self._alchemy_mystic.value())
+        self._alchemy[row]["risk_factor"] = int(self._alchemy_risk.currentData() or 0)
+        self._sync_alchemy_row(row)
+        self._update_dirty_state("Alchemy changes pending save.")
+
+    def _alchemy_ingredient_changed(self):
+        if self._loading or self._item_combo_syncing:
+            return
+        row = self._alchemy_table.currentRow()
+        if row < 0:
+            return
+        ingredients = self._alchemy[row].get("ingredients", [])
+        for slot in range(min(5, len(ingredients))):
+            qty = int(self._alchemy_qty_spins[slot].value())
+            code_data = self._alchemy_item_combos[slot].currentData()
+            if qty <= 0 and code_data is None:
+                ingredients[slot]["quantity"] = 0
+                ingredients[slot]["item_code"] = 0
+            else:
+                ingredients[slot]["quantity"] = qty
+                ingredients[slot]["item_code"] = int(code_data) if code_data is not None else 0
+        self._sync_alchemy_row(row)
+        self._update_dirty_state("Alchemy changes pending save.")
 
     def _undo_selected(self):
         tab = self._current_tab()
@@ -1481,7 +1743,7 @@ class ItemsConverter(QWidget, _DirtyMixin):
                 finally:
                     self._loading = False
                 self._update_dirty_state("Reverted selected saint.")
-        else:
+        elif tab == 2:
             row = self._formula_table.currentRow()
             if 0 <= row < len(self._formulae):
                 self._formulae[row] = copy.deepcopy(self._original_formulae[row])
@@ -1492,22 +1754,50 @@ class ItemsConverter(QWidget, _DirtyMixin):
                 finally:
                     self._loading = False
                 self._update_dirty_state("Reverted selected formula.")
+        else:
+            row = self._alchemy_table.currentRow()
+            if 0 <= row < len(self._alchemy):
+                self._alchemy[row] = copy.deepcopy(self._original_alchemy[row])
+                self._loading = True
+                try:
+                    self._sync_alchemy_row(row)
+                    self._alchemy_formula_name.setText(self._formula_display_name(row))
+                    self._alchemy_desc.setPlainText(self._alchemy[row].get("description", ""))
+                    self._alchemy_mystic.setValue(int(self._alchemy[row].get("mystic_number", 0)))
+                    risk_idx = self._alchemy_risk.findData(int(self._alchemy[row].get("risk_factor", 0)))
+                    self._alchemy_risk.setCurrentIndex(risk_idx if risk_idx >= 0 else 0)
+                    for slot, ing in enumerate(self._alchemy[row].get("ingredients", [])[:5]):
+                        self._alchemy_qty_spins[slot].setValue(int(ing.get("quantity", 0)))
+                        combo = self._alchemy_item_combos[slot]
+                        qty = int(ing.get("quantity", 0))
+                        code = int(ing.get("item_code", 0))
+                        if qty == 0 and code == 0:
+                            combo.setCurrentIndex(0)
+                        else:
+                            pos = combo.findData(code)
+                            combo.setCurrentIndex(pos if pos >= 0 else 0)
+                finally:
+                    self._loading = False
+                self._update_dirty_state("Reverted selected alchemy formula.")
 
     def _save(self):
         from vendor.darklands.reader_lst import writeData
+        from vendor.darklands.reader_alc import writeData as writeAlc
 
         if not _confirm_validation(
             self,
             self.dl_path,
-            ("ENM/LST",),
-            {"items": self._items, "saints": self._saints, "formulae": self._formulae},
+            ("ENM/LST", "ALC", "ALC/LST"),
+            {"items": self._items, "saints": self._saints, "formulae": self._formulae, "alchemy": self._alchemy},
             "Validation Warning",
         ):
             return
         try:
             lst_backup = backup_existing_file(os.path.join(self.dl_path, "DARKLAND.LST"))
             snt_backup = backup_existing_file(os.path.join(self.dl_path, "DARKLAND.SNT"))
+            alc_backup = backup_existing_file(os.path.join(self.dl_path, "DARKLAND.ALC"))
             writeData(self.dl_path, self._items, self._saints, self._formulae)
+            writeAlc(self.dl_path, self._alchemy)
         except Exception as exc:
             QMessageBox.critical(self, "Save Error", str(exc))
             return
@@ -1515,8 +1805,9 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._original_items = copy.deepcopy(self._items)
         self._original_saints = copy.deepcopy(self._saints)
         self._original_formulae = copy.deepcopy(self._formulae)
+        self._original_alchemy = copy.deepcopy(self._alchemy)
         self._save_btn.setEnabled(False)
         self._status_lbl.setText(
-            f"Saved DARKLAND.LST and DARKLAND.SNT ({backup_label(lst_backup)}, {backup_label(snt_backup)})"
+            f"Saved DARKLAND.LST, DARKLAND.SNT and DARKLAND.ALC ({backup_label(lst_backup)}, {backup_label(snt_backup)}, {backup_label(alc_backup)})"
         )
         self._refresh_highlights()

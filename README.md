@@ -32,7 +32,7 @@ Current scope includes:
 
 ## Status
 
-This project is currently **0.9 beta**.
+This project is currently **0.9b2**.
 
 Large parts of the app are already useful, but some areas are still experimental or under active research. In particular, some file families are supported only partially, and research-oriented placeholders still exist for formats that are not yet fully integrated.
 

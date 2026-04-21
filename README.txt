@@ -1,5 +1,5 @@
 DARK: Darklands Authoring & Resource Kit
-Version 0.9 beta
+Version 0.9b2
 2026
 By Arkana Mechanika Labs
 

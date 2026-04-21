@@ -30,7 +30,7 @@ _TREE_STRUCTURE = [
     ("Data", [
         ("Enemies",                 "data_converters", "EnemiesConverter"),
         ("Locations",               "data_editors",    "LocationsConverter"),
-        ("Items, Saints & Formulae","data_editors",    "ItemsConverter"),
+        ("Items, Saints, Formulae & Alchemy","data_editors",    "ItemsConverter"),
         ("World Map",               "data_converters", "MapConverter"),
         ("Cities",                  "data_editors",    "CitiesConverter"),
     ]),

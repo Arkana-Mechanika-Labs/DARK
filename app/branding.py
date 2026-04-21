@@ -9,7 +9,7 @@ from PySide6.QtGui import QIcon, QPixmap
 APP_NAME = "DARK: Darklands Authoring & Resource Kit"
 APP_SHORT_NAME = "DARK"
 APP_TAGLINE = "Darklands Authoring & Resource Kit"
-APP_VERSION = "0.9 beta"
+APP_VERSION = "0.9b2"
 APP_YEAR = "2026"
 APP_AUTHOR = "Arkana Mechanika Labs"
 APP_DESCRIPTION = (

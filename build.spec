@@ -23,6 +23,7 @@ a = Analysis(
         "darklands.lzw",
         "darklands.rle",
         "darklands.reader_enm",
+        "darklands.reader_alc",
         "darklands.reader_loc",
         "darklands.reader_lst",
         "darklands.reader_map",

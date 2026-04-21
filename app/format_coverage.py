@@ -243,12 +243,12 @@ _RULES: tuple[CoverageRule, ...] = (
     CoverageRule(
         key="alc",
         patterns=("DARKLAND.ALC",),
-        status="supported",
+        status="editable",
         category="world",
         family="Alchemy data",
-        editor_title=None,
+        editor_title="Items, Saints, Formulae & Alchemy",
         kb_doc="20_File_Formats/By_Type/World_Data/darkland.alc.md",
-        notes="Known format with KB coverage, but not yet surfaced as a dedicated editor.",
+        notes="Alchemy formula definitions linked to LST formula names and item codes.",
     ),
     CoverageRule(
         key="img_files",

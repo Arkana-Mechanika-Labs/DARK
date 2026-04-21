@@ -97,6 +97,15 @@ def _load_defaults(dl_path: str, overrides: dict | None = None) -> dict:
         except Exception:
             data["items"] = data["saints"] = data["formulae"] = None
 
+    if "alchemy" in overrides:
+        data["alchemy"] = overrides.get("alchemy")
+    else:
+        try:
+            from darklands.reader_alc import readData as read_alc
+            data["alchemy"] = read_alc(dl_path)
+        except Exception:
+            data["alchemy"] = None
+
     if "enemy_types" in overrides or "enemies" in overrides:
         data["enemy_types"] = overrides.get("enemy_types")
         data["enemies"] = overrides.get("enemies")
@@ -141,6 +150,8 @@ def validate_world_data(dl_path: str, overrides: dict | None = None) -> Validati
     locations = data.get("locations") or []
     descs = data.get("descs") or []
     items = data.get("items") or []
+    formulae = data.get("formulae") or []
+    alchemy = data.get("alchemy") or []
     enemy_types = data.get("enemy_types") or []
     enemies = data.get("enemies") or []
     enemypal = data.get("enemypal") or []
@@ -182,6 +193,40 @@ def validate_world_data(dl_path: str, overrides: dict | None = None) -> Validati
                 "LOC/CTY",
                 f"City-icon location count ({len(city_locs)}) does not match city count ({len(cities)}).",
             )
+
+    if alchemy:
+        if len(alchemy) != 0x42:
+            _add(issues, "warning", "ALC", f"Expected 66 formula definitions from the KB, found {len(alchemy)}.")
+        if formulae and len(alchemy) != len(formulae):
+            _add(
+                issues,
+                "error",
+                "ALC/LST",
+                f"Alchemy definition count ({len(alchemy)}) does not match formula name count ({len(formulae)}).",
+            )
+        item_count = len(items)
+        for idx, formula in enumerate(alchemy):
+            risk_factor = int(formula.get("risk_factor", 0))
+            if risk_factor not in (0, 1, 2):
+                _add(issues, "warning", "ALC", f"Formula #{idx} has non-standard risk_factor {risk_factor}.")
+            seen_empty = False
+            prev_item_code = -1
+            for slot, ing in enumerate(formula.get("ingredients", [])[:5]):
+                qty = int(ing.get("quantity", 0))
+                item_code = int(ing.get("item_code", 0))
+                empty = qty == 0 and item_code == 0
+                if empty:
+                    seen_empty = True
+                    continue
+                if qty <= 0 or qty > 5:
+                    _add(issues, "warning", "ALC", f"Formula #{idx} ingredient #{slot + 1} has unusual quantity {qty}.")
+                if item_count and not (0 <= item_code < item_count):
+                    _add(issues, "error", "ALC/LST", f"Formula #{idx} ingredient #{slot + 1} references invalid item code {item_code}.")
+                if seen_empty:
+                    _add(issues, "warning", "ALC", f"Formula #{idx} has non-empty ingredients after an empty slot.")
+                if prev_item_code > item_code:
+                    _add(issues, "warning", "ALC", f"Formula #{idx} ingredients are not sorted by item code.")
+                prev_item_code = item_code
 
     if enemy_types:
         item_count = len(items)
