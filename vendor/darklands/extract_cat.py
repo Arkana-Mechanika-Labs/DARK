@@ -122,13 +122,3 @@ def extractOne(fname, entry_name, ddir):
                 fh.write(data[dataOffs:dataOffs + dataLen])
             return out_path, dataLen
     raise KeyError(f"{entry_name!r} not found in {fname}")
-
-
-if __name__ == '__main__':
-    import sys
-    if len(sys.argv) < 3:
-        print("Usage: extract_cat.py <cat_file> <output_dir>")
-        sys.exit(1)
-    files = extractAll(sys.argv[1], sys.argv[2])
-    for fn, size in files:
-        print(f'{fn}: {size} bytes')

@@ -1075,6 +1075,21 @@ class EnemiesConverter(QWidget):
     def _show_validation_details(self):
         _show_issue_details(self, "Enemy Validation", self._validation_issues())
 
+    def _validation_issue_maps(self) -> tuple[dict[int, int], dict[int, int]]:
+        type_counts: dict[int, int] = {}
+        encounter_counts: dict[int, int] = {}
+        for issue in self._validation_issues():
+            message = getattr(issue, "message", "")
+            match = re.search(r"Enemy type\s+#(\d+)", message, re.IGNORECASE)
+            if match:
+                idx = int(match.group(1))
+                type_counts[idx] = type_counts.get(idx, 0) + 1
+            match = re.search(r"Encounter\s+#(\d+)", message, re.IGNORECASE)
+            if match:
+                idx = int(match.group(1))
+                encounter_counts[idx] = encounter_counts.get(idx, 0) + 1
+        return type_counts, encounter_counts
+
     def _type_change_count(self, idx: int) -> int:
         if idx < 0 or idx >= len(self._enemy_types) or not self._orig_enemy_types:
             return 0
@@ -1103,19 +1118,22 @@ class EnemiesConverter(QWidget):
         if not self._orig_enemy_types or not self._orig_enemies:
             return
         from collections import Counter
+        type_issues, encounter_issues = self._validation_issue_maps()
         counts = Counter(e['type'] for e in self._enemies)
         for idx, item in self._type_items.items():
             et = self._enemy_types[idx]
             cnt = counts.get(idx, 0)
             badge = f"  x{cnt}" if cnt else "  ."
             dirty = self._type_change_count(idx)
+            issue_marker = f"  !{type_issues[idx]}" if idx in type_issues else ""
             marker = f"  *{dirty}" if dirty else ""
-            item.setText(0, f"{idx:2d}  {et['name']:<12}{badge}{marker}")
+            item.setText(0, f"{idx:2d}  {et['name']:<12}{badge}{issue_marker}{marker}")
         for idx in range(self._inst_list.count()):
             enc = self._enemies[idx]
             dirty = self._enc_change_count(idx)
+            issue_marker = f"  !{encounter_issues[idx]}" if idx in encounter_issues else ""
             marker = f"  *{dirty}" if dirty else ""
-            self._inst_list.item(idx).setText(f"{idx:2d}  {enc['name']}{marker}")
+            self._inst_list.item(idx).setText(f"{idx:2d}  {enc['name']}{issue_marker}{marker}")
 
     def _type_validation_messages(self, et: dict) -> list[str]:
         msgs = []

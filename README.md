@@ -59,10 +59,10 @@ For source use:
 
 ## Repository Layout
 
-- `app/` — UI, editors, dialogs, validation, theming
-- `vendor/darklands/` — file-format readers/writers and format helpers
-- `screenshots/` — app screenshots for documentation
-- `docs/` — project notes and reports
+- `app/` - UI, editors, dialogs, validation, theming
+- `vendor/darklands/` - file-format readers/writers and format helpers
+- `screenshots/` - app screenshots for documentation
+- `docs/` - project notes and reports
 
 ## Releases
 

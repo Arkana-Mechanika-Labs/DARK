@@ -117,13 +117,3 @@ def write_file(fname, locs):
 
     with open(fname, 'wb') as fh:
         fh.write(data)
-
-
-if __name__ == '__main__':
-    import sys
-    from utils import itemStr
-    dlPath = sys.argv[1] if len(sys.argv) > 1 else 'DL'
-    locs = readData(dlPath)
-    for i, c in enumerate(locs):
-        print('#', i, '#')
-        print(itemStr(dict(c)))

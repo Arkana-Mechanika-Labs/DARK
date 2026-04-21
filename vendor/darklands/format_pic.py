@@ -170,18 +170,3 @@ class Pic:
                 self.pal_to_file(fh)
             if self.pic:
                 self.pic_to_file(fh)
-
-
-if __name__ == '__main__':
-    import sys, os
-    fname = sys.argv[1]
-    ddir  = sys.argv[2]
-    pname = sys.argv[3] if len(sys.argv) == 4 else None
-    dname = os.path.join(ddir, os.path.basename(fname) + '.png')
-    pic = Pic(fname)
-    if pname:
-        pic.read_file(pname, palOnly=True)
-    if not pic.pal:
-        pic.pal = default_pal
-    if pic.pic:
-        pic.save_image(dname)

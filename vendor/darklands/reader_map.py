@@ -68,13 +68,3 @@ def readData(dlPath):
             m[y][x] = (pal, row, col)
 
     return m
-
-
-if __name__ == '__main__':
-    import sys
-    dlPath = sys.argv[1] if len(sys.argv) > 1 else 'DL'
-    m = readData(dlPath)
-    print(len(m[0]), len(m))
-    tiles = [' ....sppffttTTTT', 'HHhhMMAA/~~%Cc++']
-    for ln in m:
-        print(''.join([tiles[pal][row] for pal, row, col in ln]))

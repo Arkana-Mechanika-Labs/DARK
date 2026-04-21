@@ -455,6 +455,16 @@ class DialogsConverter(QWidget):
     def _show_validation_details(self):
         _show_issue_details(self, "Dialog Validation", self._validation_issues())
 
+    def _card_issue_counts(self) -> dict[int, int]:
+        counts: dict[int, int] = {}
+        for issue in self._validation_issues():
+            match = re.search(r"card\s+#(\d+)", getattr(issue, "message", ""), re.IGNORECASE)
+            if not match:
+                continue
+            idx = int(match.group(1))
+            counts[idx] = counts.get(idx, 0) + 1
+        return counts
+
     def _describe_msgfiles_entry(self, entry) -> str:
         if entry is None or self._msgfiles_archive is None:
             return "MSGFILES entry metadata unavailable."
@@ -589,10 +599,12 @@ class DialogsConverter(QWidget):
         self.card_list.blockSignals(True)
         current = self._current_card_idx
         self.card_list.clear()
+        issue_counts = self._card_issue_counts()
         for idx, card in enumerate(self._cards):
             preview = self._card_summary(card)
             dirty = idx >= len(self._original_cards) or card != self._original_cards[idx]
-            self.card_list.addItem(f"{idx:02d}  {preview}{'  *' if dirty else ''}")
+            issue_marker = f"  !{issue_counts[idx]}" if idx in issue_counts else ""
+            self.card_list.addItem(f"{idx:02d}  {preview}{issue_marker}{'  *' if dirty else ''}")
         if 0 <= current < self.card_list.count():
             self.card_list.setCurrentRow(current)
         self.card_list.blockSignals(False)
@@ -692,7 +704,9 @@ class DialogsConverter(QWidget):
         item = self.card_list.item(row)
         if item is not None:
             dirty = row >= len(self._original_cards) or self._cards[row] != self._original_cards[row]
-            item.setText(f"{row:02d}  {self._card_summary(self._cards[row])}{'  *' if dirty else ''}")
+            issue_count = self._card_issue_counts().get(row, 0)
+            issue_marker = f"  !{issue_count}" if issue_count else ""
+            item.setText(f"{row:02d}  {self._card_summary(self._cards[row])}{issue_marker}{'  *' if dirty else ''}")
 
     def _render_preview(self):
         if self._current_card_idx < 0 or self._current_card_idx >= len(self._cards):

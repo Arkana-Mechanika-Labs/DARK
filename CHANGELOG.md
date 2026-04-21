@@ -9,7 +9,11 @@
 - Added confirmed structural validation checks for `MSGFILES`, `DARKLAND.LOC`, and selected `CTY` consistency rules.
 - Added direct `Open in Tool` routing from CAT entries into the appropriate DARK editor for known archive formats.
 - Expanded validation issue navigation so related `ALC` and `MSG/MSGFILES` findings can jump straight into the corresponding editor content.
+- Added in-editor validation badges and scoped `Issues...` actions across the main structured editors.
+- Added per-record issue markers in enemy, city, formula, alchemy, and MSG card lists so affected rows are visibly flagged.
 - Updated format coverage so `DARKLAND.ALC` is now marked as editable.
+- Renamed public `WIP` tooling labels to `Research` for a cleaner public-facing UI.
+- Cleaned the public repo presentation, including README encoding fixes and removal of old vendor demo/debug entry points.
 - Improved local release workflow support for the standalone DARK repo.
 
 ## 0.9b

@@ -122,18 +122,3 @@ def writeData(dlPath, items, saints, formulae):
         snt += desc.ljust(0x168, b'\x00')
     with open(os.path.join(dlPath, 'DARKLAND.SNT'), 'wb') as fh:
         fh.write(snt)
-
-
-if __name__ == '__main__':
-    import sys
-    from utils import itemStr
-    dlPath = sys.argv[1] if len(sys.argv) > 1 else 'DL'
-    items, saints, forms = readData(dlPath)
-    for i, c in enumerate(items):
-        print('#', i, '#'); print(itemStr(c))
-    print()
-    for i, c in enumerate(saints):
-        print('#', i, '#'); print(itemStr(c))
-    print()
-    for i, c in enumerate(forms):
-        print('#', i, '#'); print(itemStr(c))

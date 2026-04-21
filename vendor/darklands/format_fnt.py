@@ -99,20 +99,3 @@ def readData(dlPath):
         fname = os.path.join(dlPath, 'FONTS.' + ext)
         fonts[ext] = read_fonts(fname)
     return fonts
-
-
-if __name__ == '__main__':
-    import sys
-    dlPath = sys.argv[1] if len(sys.argv) > 1 else 'DL'
-    fonts = readData(dlPath)
-    for ext, fnts in fonts.items():
-        print('------', ext)
-        for i, fnt in enumerate(fnts):
-            print("-----", i, 'h:', fnt.height, fnt.start_char, '-', fnt.end_char, len(fnt.chars), 'bw', fnt.bw)
-            chC = fnt.start_char
-            for ch in fnt.chars:
-                print('ch: %d, w: %d' % (chC, ch.width))
-                chC += 1
-                for r in ch.lines:
-                    print(''.join([('.', '#')[b] for b in r]))
-                print()

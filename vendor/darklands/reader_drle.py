@@ -4,12 +4,6 @@
 # when rebuilding IMC data.
 import struct
 
-
-def dumpb(data):
-    for i in range(0, len(data), 16):
-        print(' '.join([("%2s" % hex(b)[2:].upper()).replace(' ', '0') for b in data[i:i + 16]]))
-
-
 class _DrleDecompressor:
     def __init__(self):
         self.carry = False
@@ -137,13 +131,3 @@ def extractToFile(inPath, outPath):
     data = readData(open(inPath, 'rb').read())
     with open(outPath, 'wb') as fh:
         fh.write(bytes(data))
-
-
-if __name__ == '__main__':
-    import sys
-    filePath = sys.argv[1]
-    if len(sys.argv) > 2:
-        extractToFile(filePath, sys.argv[2])
-    else:
-        data = readFile(filePath)
-        dumpb(data)

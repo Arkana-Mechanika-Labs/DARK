@@ -229,26 +229,3 @@ def writeBytes(cards):
 
 
 write_file = writeData
-
-
-def printCard(c):
-    for e in c:
-        if isinstance(e, str):
-            print(e)
-        elif len(e) >= 3:
-            print(f"  [{e[0]}] {e[1]} | {e[2]}")
-        elif len(e) == 2:
-            print(f"  [{e[0]}] {e[1]}")
-        elif len(e) == 1:
-            print(f"  [{e[0]}]")
-
-
-if __name__ == '__main__':
-    import sys
-    fname = sys.argv[1]
-    cards = readData(fname)
-    for i, c in enumerate(cards):
-        print(f"--- Card {i} "
-              f"(y={c['textOffsY']} x={c['textOffsX']} maxX={c['textMaxX']}) ---")
-        printCard(c['elements'])
-        print()

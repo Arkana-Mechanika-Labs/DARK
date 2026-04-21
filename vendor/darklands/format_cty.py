@@ -216,12 +216,3 @@ def write_file(fname, cities):
 
     with open(fname, 'wb') as fh:
         fh.write(data)
-
-
-if __name__ == '__main__':
-    import sys
-    dlPath = sys.argv[1] if len(sys.argv) > 1 else 'DL'
-    cities = readData(dlPath)
-    for i, c in enumerate(cities):
-        print('#', i, '#')
-        print(c)

@@ -62,16 +62,3 @@ def readData(dlPath):
         enemies.append(e)
 
     return enemyTypes, enemies
-
-
-if __name__ == '__main__':
-    import sys
-    from utils import itemStr
-    dlPath = sys.argv[1] if len(sys.argv) > 1 else 'DL'
-    eTypes, enemies = readData(dlPath)
-    for i, et in enumerate(eTypes):
-        print('%2d: %s' % (i, itemStr(et)))
-    print()
-    for i, et in enumerate(enemies):
-        print(i)
-        print(itemStr(et))

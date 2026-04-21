@@ -136,7 +136,7 @@ class _ResearchFileViewer(QWidget):
 class ImgResearchConverter(_ResearchFileViewer):
     def __init__(self, parent=None):
         super().__init__(
-            "IMG Banks (WIP)",
+            "IMG Banks (Research)",
             ("*.IMG",),
             "WIP/COMMONSP/COMMONSP_IMG.md",
             "Placeholder viewer for IMG-family research files such as COMMONSP.IMG and BATTLEGR.IMG.",
@@ -147,7 +147,7 @@ class ImgResearchConverter(_ResearchFileViewer):
 class PanResearchConverter(_ResearchFileViewer):
     def __init__(self, parent=None):
         super().__init__(
-            "PAN Sequences (WIP)",
+            "PAN Sequences (Research)",
             ("*.PAN",),
             "WIP/PAN/PAN_Format.md",
             "Placeholder viewer for PAN presentation sequences while PAN support is still under active research.",

@@ -1,5 +1,6 @@
 import copy
 import os
+import re
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QFont
@@ -133,6 +134,18 @@ def _show_issue_details(parent, title: str, issues: list):
     box.exec()
 
 
+def _issue_count_map(issues: list, pattern: str) -> dict[int, int]:
+    counts: dict[int, int] = {}
+    rx = re.compile(pattern, re.IGNORECASE)
+    for issue in issues:
+        match = rx.search(getattr(issue, "message", ""))
+        if not match:
+            continue
+        idx = int(match.group(1))
+        counts[idx] = counts.get(idx, 0) + 1
+    return counts
+
+
 class _DirtyMixin:
     def _mark_dirty(self, text: str):
         if getattr(self, "_loading", False):
@@ -157,6 +170,7 @@ class LocationsConverter(QWidget, _DirtyMixin):
         self._undo_stack = []
         self._redo_stack = []
         self._history_row = None
+        self._city_issue_counts_cache = {}
 
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 10, 14, 10)
@@ -1087,10 +1101,14 @@ class CitiesConverter(QWidget, _DirtyMixin):
         if not self.dl_path or not self._cities:
             self._validation_lbl.setText("")
             self._issues_btn.setEnabled(False)
+            self._city_issue_counts_cache = {}
             return
         issues = self._validation_issues()
+        self._city_issue_counts_cache = _issue_count_map(issues, r"City\s+#(\d+)")
         _set_validation_label(self._validation_lbl, issues)
         self._issues_btn.setEnabled(True)
+        for row in range(self._list.count()):
+            self._refresh_list_item(row)
 
     def _validation_issues(self):
         report = validate_world_data(self.dl_path, {"cities": self._cities})
@@ -1098,6 +1116,9 @@ class CitiesConverter(QWidget, _DirtyMixin):
 
     def _show_validation_details(self):
         _show_issue_details(self, "City Validation", self._validation_issues())
+
+    def _city_issue_counts(self) -> dict[int, int]:
+        return self._city_issue_counts_cache or _issue_count_map(self._validation_issues(), r"City\s+#(\d+)")
 
     def _changed_field_count(self, row: int) -> int:
         if row < 0 or row >= len(self._cities):
@@ -1130,7 +1151,9 @@ class CitiesConverter(QWidget, _DirtyMixin):
             return
         city = self._cities[row]
         dirty = self._changed_field_count(row)
-        item.setText(f"{row:03d}  {city.short_name or city.name}{f'  *{dirty}' if dirty else ''}")
+        issues = self._city_issue_counts().get(row, 0)
+        issue_marker = f"  !{issues}" if issues else ""
+        item.setText(f"{row:03d}  {city.short_name or city.name}{issue_marker}{f'  *{dirty}' if dirty else ''}")
 
     def _push_undo_state(self):
         row = self._index
@@ -1258,6 +1281,8 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._loading = False
         self._dirty = False
         self._item_combo_syncing = False
+        self._formula_issue_counts_cache = {}
+        self._alchemy_issue_counts_cache = {}
 
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 10, 14, 10)
@@ -1585,16 +1610,26 @@ class ItemsConverter(QWidget, _DirtyMixin):
         _set_widget_edited(self._saint_desc, edited)
 
     def _refresh_formula_highlights(self):
+        issue_counts = self._formula_issue_counts()
         for row in range(self._formula_table.rowCount()):
             cur = self._formulae[row]
             orig = self._original_formulae[row]
+            idx_item = self._formula_table.item(row, 0)
+            if idx_item is not None:
+                issues = issue_counts.get(row, 0)
+                idx_item.setText(f"{row}{f'  !{issues}' if issues else ''}")
             self._set_table_item_edited(self._formula_table.item(row, 1), cur.get("name", "") != orig.get("name", ""))
             self._set_table_item_edited(self._formula_table.item(row, 2), cur.get("short_name", "") != orig.get("short_name", ""))
 
     def _refresh_alchemy_highlights(self):
+        issue_counts = self._alchemy_issue_counts()
         for row in range(self._alchemy_table.rowCount()):
             cur = self._alchemy[row]
             orig = self._original_alchemy[row]
+            idx_item = self._alchemy_table.item(row, 0)
+            if idx_item is not None:
+                issues = issue_counts.get(row, 0)
+                idx_item.setText(f"{row}{f'  !{issues}' if issues else ''}")
             cur_name = self._formulae[row].get("name", "") if row < len(self._formulae) else self._formula_display_name(row)
             orig_name = self._original_formulae[row].get("name", "") if row < len(self._original_formulae) else cur_name
             self._set_table_item_edited(self._alchemy_table.item(row, 1), cur_name != orig_name)
@@ -1666,8 +1701,12 @@ class ItemsConverter(QWidget, _DirtyMixin):
         if not self.dl_path or not self._items:
             self._validation_lbl.setText("")
             self._issues_btn.setEnabled(False)
+            self._formula_issue_counts_cache = {}
+            self._alchemy_issue_counts_cache = {}
             return
         issues = self._validation_issues()
+        self._formula_issue_counts_cache = _issue_count_map(issues, r"Formula\s+#(\d+)")
+        self._alchemy_issue_counts_cache = _issue_count_map(issues, r"Alchemy\s+#(\d+)")
         _set_validation_label(self._validation_lbl, issues)
         self._issues_btn.setEnabled(True)
 
@@ -1685,6 +1724,12 @@ class ItemsConverter(QWidget, _DirtyMixin):
 
     def _show_validation_details(self):
         _show_issue_details(self, "List / Alchemy Validation", self._validation_issues())
+
+    def _formula_issue_counts(self) -> dict[int, int]:
+        return self._formula_issue_counts_cache or _issue_count_map(self._validation_issues(), r"Formula\s+#(\d+)")
+
+    def _alchemy_issue_counts(self) -> dict[int, int]:
+        return self._alchemy_issue_counts_cache or _issue_count_map(self._validation_issues(), r"Alchemy\s+#(\d+)")
 
     def _apply_filter(self):
         needle = self._filter_edit.text().strip().lower()

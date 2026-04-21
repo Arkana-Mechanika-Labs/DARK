@@ -50,8 +50,8 @@ _TREE_STRUCTURE = [
     ]),
     ("Research", [
         ("DGT Audio",               "audio_converters",    "DgtAudioConverter"),
-        ("IMG Banks (WIP)",         "research_converters", "ImgResearchConverter"),
-        ("PAN Sequences (WIP)",     "research_converters", "PanResearchConverter"),
+            ("IMG Banks (Research)",    "research_converters", "ImgResearchConverter"),
+            ("PAN Sequences (Research)","research_converters", "PanResearchConverter"),
         ("Research Files",          "research_converters", "ResearchFilesConverter"),
         ("DRLE Decompressor",       "image_converters","DrleConverter"),
     ]),
@@ -180,7 +180,7 @@ class MainWindow(QMainWindow):
         hint.setStyleSheet("color: #8d99a6; font-size: 13px;")
         layout.addWidget(hint)
 
-        micro = QLabel(APP_SHORT_NAME + "  •  " + APP_TAGLINE)
+        micro = QLabel(APP_SHORT_NAME + "  -  " + APP_TAGLINE)
         micro.setAlignment(Qt.AlignmentFlag.AlignCenter)
         micro.setStyleSheet("color: #7f8c99; font-size: 11px; letter-spacing: 0.6px;")
         layout.addWidget(micro)

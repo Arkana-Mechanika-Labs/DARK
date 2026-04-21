@@ -34,11 +34,3 @@ def write_file(fname, descs):
         data += raw.ljust(80, b'\x00')
     with open(fname, 'wb') as fh:
         fh.write(data)
-
-
-if __name__ == '__main__':
-    import sys
-    dlPath = sys.argv[1] if len(sys.argv) > 1 else 'DL'
-    descs = readData(dlPath)
-    for i, d in enumerate(descs):
-        print(i, d)
