@@ -285,6 +285,23 @@ class DialogsConverter(QWidget):
         self.folder_edit.setText(path)
         self._refresh_list(path)
 
+    def open_file(self, fpath: str):
+        if not fpath or not os.path.isfile(fpath):
+            return False
+        folder = os.path.dirname(fpath)
+        self.folder_edit.setText(folder)
+        self._refresh_list(folder)
+        base = os.path.basename(fpath)
+        for row in range(self.file_list.count()):
+            item = self.file_list.item(row)
+            payload = item.data(Qt.ItemDataRole.UserRole) if item else None
+            if payload and payload[0] == "file" and str(payload[2]).upper() == base.upper():
+                self.file_list.setCurrentRow(row)
+                self._on_file_clicked(item)
+                return True
+        self._load_file(fpath)
+        return True
+
     def focus_filter(self):
         self._file_filter.setFocus()
         self._file_filter.selectAll()
@@ -293,6 +310,30 @@ class DialogsConverter(QWidget):
         if 0 <= row < self.card_list.count():
             self.card_list.setCurrentRow(row)
             self.card_list.scrollToItem(self.card_list.item(row))
+
+    def open_message(self, msg_name: str):
+        if not msg_name:
+            return False
+        upper_name = msg_name.upper()
+        for row in range(self.file_list.count()):
+            item = self.file_list.item(row)
+            payload = item.data(Qt.ItemDataRole.UserRole) if item else None
+            if not payload:
+                continue
+            kind, path, name = payload
+            if str(name).upper() != upper_name:
+                continue
+            self.file_list.setCurrentRow(row)
+            self._on_file_clicked(item)
+            return True
+        if self.dl_path:
+            cat_path = os.path.join(self.dl_path, "MSGFILES")
+            if os.path.isfile(cat_path):
+                return self.open_catalog_entry(cat_path, msg_name)
+            loose = os.path.join(self.dl_path, msg_name)
+            if os.path.isfile(loose):
+                return self.open_file(loose)
+        return False
 
     def _browse_folder(self):
         path = QFileDialog.getExistingDirectory(
@@ -443,6 +484,43 @@ class DialogsConverter(QWidget):
                 if self._cards:
                     self.card_list.setCurrentRow(0)
                 return
+
+    def open_catalog_entry(self, cat_path: str, entry_name: str, data: bytes | None = None):
+        folder = os.path.dirname(cat_path)
+        self.folder_edit.setText(folder)
+        self._refresh_list(folder)
+        for row in range(self.file_list.count()):
+            item = self.file_list.item(row)
+            payload = item.data(Qt.ItemDataRole.UserRole) if item else None
+            if payload and payload[0] == "catalog" and str(payload[1]).upper() == cat_path.upper() and str(payload[2]).upper() == entry_name.upper():
+                self.file_list.setCurrentRow(row)
+                self._on_file_clicked(item)
+                return True
+        if data is None:
+            return False
+        try:
+            from darklands.reader_msg import readDataBytes
+            self._cards = readDataBytes(data)
+            self._current_file = ""
+            self._current_catalog = cat_path
+            self._current_entry_name = entry_name
+            self._current_msgfiles_entry = (
+                self._msgfiles_archive.get(entry_name) if self._msgfiles_archive else None
+            )
+            self._current_card_idx = -1
+            self._dirty = False
+            self._original_cards = copy.deepcopy(self._cards)
+            self._save_btn.setEnabled(False)
+            self._status.setText(f"Loaded {entry_name} from {os.path.basename(cat_path)}")
+            self.editor_title.setText(f"{entry_name}  [{os.path.basename(cat_path)}]")
+            self._set_file_info(self._describe_msgfiles_entry(self._current_msgfiles_entry))
+            self._rebuild_card_list()
+            self._clear_editor()
+            if self._cards:
+                self.card_list.setCurrentRow(0)
+            return True
+        except Exception:
+            return False
 
     def _clear_editor(self):
         self._loading = True

@@ -1325,6 +1325,22 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._filter_edit.setFocus()
         self._filter_edit.selectAll()
 
+    def select_formula(self, row: int):
+        if 0 <= row < self._formula_table.rowCount():
+            self._tabs.setCurrentIndex(2)
+            self._formula_table.setCurrentCell(row, 1)
+            item = self._formula_table.item(row, 1) or self._formula_table.item(row, 0)
+            if item is not None:
+                self._formula_table.scrollToItem(item)
+
+    def select_alchemy(self, row: int):
+        if 0 <= row < self._alchemy_table.rowCount():
+            self._tabs.setCurrentIndex(3)
+            self._alchemy_table.setCurrentCell(row, 1)
+            item = self._alchemy_table.item(row, 1) or self._alchemy_table.item(row, 0)
+            if item is not None:
+                self._alchemy_table.scrollToItem(item)
+
     def _fill_items(self):
         self._items_table.setRowCount(len(self._items))
         for r, item in enumerate(self._items):

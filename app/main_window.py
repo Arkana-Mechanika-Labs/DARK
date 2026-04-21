@@ -321,6 +321,21 @@ class MainWindow(QMainWindow):
             self.stack.setCurrentIndex(idx)
         return self._widget_by_title.get(title)
 
+    def open_archive_entry(self, editor_title: str, cat_path: str, entry_name: str, data: bytes | None = None) -> bool:
+        widget = self.open_editor(editor_title)
+        if widget is None:
+            return False
+        opener = getattr(widget, "open_catalog_entry", None)
+        if callable(opener):
+            try:
+                return bool(opener(cat_path, entry_name, data))
+            except TypeError:
+                return bool(opener(cat_path, entry_name))
+        opener = getattr(widget, "open_archive_entry", None)
+        if callable(opener):
+            return bool(opener(cat_path, entry_name, data))
+        return False
+
     def navigate_to_validation_issue(self, issue) -> bool:
         message = issue.message
         scope = issue.scope
@@ -355,6 +370,25 @@ class MainWindow(QMainWindow):
             if match and hasattr(widget, "select_encounter"):
                 widget.select_encounter(int(match.group(1)))
                 return True
+            return True
+        if scope.startswith("ALC"):
+            widget = self.open_editor("Items, Saints, Formulae & Alchemy")
+            if widget is None:
+                return False
+            match = re.search(r"Formula #(\d+)", message)
+            if match and hasattr(widget, "select_alchemy"):
+                widget.select_alchemy(int(match.group(1)))
+                return True
+            return True
+        if scope.startswith("MSG"):
+            widget = self.open_editor("Dialog Cards (MSG)")
+            if widget is None:
+                return False
+            match = re.search(r"([$\w]+\.MSG)", message, re.IGNORECASE)
+            if match:
+                opener = getattr(widget, "open_message", None)
+                if callable(opener):
+                    return bool(opener(match.group(1)))
             return True
         return False
 

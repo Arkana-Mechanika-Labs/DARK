@@ -364,6 +364,11 @@ class CatConverter(QWidget):
         self.replace_btn.clicked.connect(self._replace_selected)
         action_row.addWidget(self.replace_btn)
 
+        self.open_tool_btn = QPushButton("Open in Tool")
+        self.open_tool_btn.setEnabled(False)
+        self.open_tool_btn.clicked.connect(self._open_in_tool)
+        action_row.addWidget(self.open_tool_btn)
+
         self.add_btn = QPushButton("Add Files...")
         self.add_btn.setEnabled(False)
         self.add_btn.clicked.connect(self._add_files)
@@ -606,12 +611,55 @@ class CatConverter(QWidget):
         has_sel = len(self.file_list.selectedItems()) > 0
         self.extract_sel_btn.setEnabled(has_sel and bool(self._cat_file))
         self.replace_btn.setEnabled(has_sel and bool(self._cat_file))
+        self.open_tool_btn.setEnabled(self._selected_entry_target() is not None)
 
     def _set_dirty(self, message: str):
         self._dirty = True
         self.save_btn.setEnabled(bool(self._cat_file))
         self.save_as_btn.setEnabled(bool(self._cat_file))
         self._log.setPlainText(message)
+
+    def _selected_entry_target(self):
+        items = self.file_list.selectedItems()
+        if len(items) != 1 or not self._cat_file:
+            return None
+        item = items[0]
+        coverage = item.data(Qt.ItemDataRole.UserRole)
+        if coverage is None or not coverage.editor_title or coverage.editor_title == "CAT Extractor":
+            return None
+        return item.text(), coverage
+
+    def _entry_bytes(self, entry_name: str) -> bytes:
+        from darklands.extract_cat import extractOneToBytes
+        _name, data = extractOneToBytes(self._cat_file, entry_name)
+        return data
+
+    def _open_in_tool(self):
+        target = self._selected_entry_target()
+        if target is None:
+            return
+        entry_name, coverage = target
+        try:
+            data = self._entry_bytes(entry_name)
+        except Exception as exc:
+            QMessageBox.critical(self, "Open in Tool", f"Could not extract {entry_name} from the archive.\n\n{exc}")
+            return
+        main_window = self.window()
+        opener = getattr(main_window, "open_archive_entry", None)
+        if not callable(opener):
+            QMessageBox.information(self, "Open in Tool", "This DARK window cannot route archive entries to another tool.")
+            return
+        if opener(coverage.editor_title, self._cat_file, entry_name, data):
+            self._log.setPlainText(
+                f"Opened {entry_name} in {coverage.editor_title}.\n"
+                f"Source archive: {self._cat_file}"
+            )
+        else:
+            QMessageBox.information(
+                self,
+                "Open in Tool",
+                f"{entry_name} could not be opened in {coverage.editor_title} from this archive."
+            )
 
     def _refresh_contents_view(self, select_name: str | None = None):
         self.file_list.clear()

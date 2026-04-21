@@ -7,6 +7,8 @@
 - Added alchemy ingredient validation against `DARKLAND.LST` item codes.
 - Added low-level `MSGFILES` archive inspection with entry index, raw field `0x0C`, size, and offset metadata in the dialog editor.
 - Added confirmed structural validation checks for `MSGFILES`, `DARKLAND.LOC`, and selected `CTY` consistency rules.
+- Added direct `Open in Tool` routing from CAT entries into the appropriate DARK editor for known archive formats.
+- Expanded validation issue navigation so related `ALC` and `MSG/MSGFILES` findings can jump straight into the corresponding editor content.
 - Updated format coverage so `DARKLAND.ALC` is now marked as editable.
 - Improved local release workflow support for the standalone DARK repo.
 

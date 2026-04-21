@@ -295,6 +295,46 @@ class PicConverter(QWidget):
         save_btn = QPushButton("Save as PNG…")
         save_btn.clicked.connect(self._save_png)
         action_row.addWidget(save_btn)
+
+    def _load_pic_bytes(self, data: bytes, display_name: str):
+        try:
+            from darklands.format_pic import Pic, default_pal
+            pic = Pic()
+            pos = 0
+            data_len = len(data)
+            while pos + 4 <= data_len:
+                tag = int.from_bytes(data[pos:pos + 2], "little")
+                seg_len = int.from_bytes(data[pos + 2:pos + 4], "little")
+                pos += 4
+                segment = data[pos:pos + seg_len]
+                if len(segment) < seg_len:
+                    break
+                if tag == 0x304D:
+                    pic.pal_from_data(segment)
+                elif tag == 0x3058:
+                    pic.pic_from_data(segment)
+                pos += seg_len
+            resolved_pal = list(pic.pal) if pic.pal else list(default_pal)
+            pic.pal = resolved_pal
+            self._palette_info.setText(f"Resolved palette: embedded / archive ({display_name})")
+            if pic.pic:
+                rgba, w, h = pic.render_rgba_bytes()
+                pixmap = _bytes_to_pixmap(rgba, w, h)
+            else:
+                pixmap = QPixmap()
+            self._current_pic = pic
+            self._current_pixmap = pixmap
+            self._selected_file = None
+            self._last_palette = list(pic.pal) if pic.pal else None
+            self._last_palette_source = f"archive:{display_name}"
+            pal_pixmap = _render_palette_pixmap(pic.pal or default_pal, cell=12)
+            self._palette_label.setPixmap(pal_pixmap)
+            self._palette_label.resize(pal_pixmap.size())
+            self._palette_label.setText("")
+            self._apply_zoom()
+            self._image_label.setToolTip(display_name)
+        except Exception:
+            self._image_label.setText(f"Error:\n{traceback.format_exc()}")
         root.addLayout(action_row)
 
     # ── path / folder management ──────────────────────────────────────────
@@ -509,6 +549,33 @@ class PicConverter(QWidget):
         )
         for fname in files:
             self.file_list.addItem(fname)
+
+    def open_file(self, fpath: str):
+        if not fpath or not os.path.isfile(fpath):
+            return False
+        folder = os.path.dirname(fpath)
+        self.folder_edit.setText(folder)
+        self._refresh_list(folder)
+        base = os.path.basename(fpath)
+        for row in range(self.file_list.count()):
+            item = self.file_list.item(row)
+            if item and item.text().upper() == base.upper():
+                self.file_list.setCurrentRow(row)
+                break
+        self._selected_file = fpath
+        self._reload()
+        return True
+
+    def open_catalog_entry(self, cat_path: str, entry_name: str, data: bytes | None = None):
+        if not entry_name.upper().endswith(".PIC"):
+            return False
+        if data is None:
+            return False
+        self.folder_edit.setText(os.path.dirname(cat_path))
+        self.file_list.clearSelection()
+        self.pal_edit.clear()
+        self._load_pic_bytes(data, f"{os.path.basename(cat_path)} / {entry_name}")
+        return True
 
     # ── file load ─────────────────────────────────────────────────────────
 
@@ -1292,6 +1359,24 @@ class ImcConverter(QWidget):
             self.info_label.setText(self.info_label.text() + "\nCatalog saved.")
         except Exception as exc:
             QMessageBox.critical(self, "Save error", str(exc))
+
+    def open_catalog_entry(self, cat_path: str, entry_name: str, data: bytes | None = None):
+        cat_name = os.path.basename(cat_path).upper()
+        if not entry_name.upper().endswith(".IMC"):
+            return False
+        if self.cat_combo.count() == 0:
+            self._refresh_catalogs()
+        idx = self.cat_combo.findData(cat_name)
+        if idx < 0:
+            return False
+        self.cat_combo.setCurrentIndex(idx)
+        for row in range(self.entry_list.count()):
+            item = self.entry_list.item(row)
+            if item and item.text().upper() == entry_name.upper():
+                self.entry_list.setCurrentRow(row)
+                self._on_entry_clicked(item)
+                return True
+        return False
 
 
 # ---------------------------------------------------------------------------
