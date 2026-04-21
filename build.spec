@@ -27,6 +27,7 @@ a = Analysis(
         "darklands.reader_loc",
         "darklands.reader_lst",
         "darklands.reader_map",
+        "darklands.reader_msgfiles",
         "darklands.reader_msg",
         "darklands.reader_drle",
         "darklands.reader_enemypal",

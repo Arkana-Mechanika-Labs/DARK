@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import struct
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -160,6 +161,7 @@ def validate_world_data(dl_path: str, overrides: dict | None = None) -> Validati
         if len(cities) != 92:
             _add(issues, "warning", "CTY", f"Expected 92 cities from the KB, found {len(cities)}.")
         for idx, city in enumerate(cities):
+            contents = getattr(city, "city_contents", {}) or {}
             for dock_idx, target in enumerate(getattr(city, "dock_destinations", [])[:4]):
                 if target not in (-1, 0xFFFF) and not (0 <= target < len(cities)):
                     _add(
@@ -169,6 +171,10 @@ def validate_world_data(dl_path: str, overrides: dict | None = None) -> Validati
                         f"City #{idx} has invalid dock destination #{dock_idx + 1}: {target}.",
                         getattr(city, "name", "") or getattr(city, "short_name", ""),
                     )
+            has_docks = bool(contents.get("has_docks"))
+            dock_count = len(getattr(city, "dock_destinations", []) or [])
+            if (not has_docks) and dock_count > 0:
+                _add(issues, "warning", "CTY", f"City #{idx} has dock destinations but is not flagged as having docks.")
 
     if descs:
         if len(descs) != 92:
@@ -193,6 +199,35 @@ def validate_world_data(dl_path: str, overrides: dict | None = None) -> Validati
                 "LOC/CTY",
                 f"City-icon location count ({len(city_locs)}) does not match city count ({len(cities)}).",
             )
+        raw_loc = _safe_read(dl_path, "DARKLAND.LOC")
+        if raw_loc:
+            try:
+                (loc_count_raw,) = struct.unpack_from("<H", raw_loc, 0)
+                expected_size = 2 + loc_count_raw * 0x3A
+                if len(raw_loc) != expected_size:
+                    _add(
+                        issues,
+                        "error",
+                        "LOC",
+                        f"DARKLAND.LOC size {len(raw_loc)} does not match header-derived size {expected_size}.",
+                    )
+                const_mismatches = 0
+                zero_tail_mismatches = 0
+                for idx in range(min(loc_count_raw, len(locations))):
+                    base = 2 + idx * 0x3A
+                    record = raw_loc[base:base + 0x3A]
+                    if len(record) < 0x3A:
+                        break
+                    if record[0x15:0x18] != b"\x19\x19\x19":
+                        const_mismatches += 1
+                    if record[0x1E:0x26] != b"\x00" * 8:
+                        zero_tail_mismatches += 1
+                if const_mismatches:
+                    _add(issues, "warning", "LOC", f"{const_mismatches} location records differ from the expected 0x15..0x17 constant 19 19 19 block.")
+                if zero_tail_mismatches:
+                    _add(issues, "warning", "LOC", f"{zero_tail_mismatches} location records have non-zero bytes in the expected 0x1E..0x25 zero block.")
+            except Exception:
+                _add(issues, "warning", "LOC", "Could not complete raw structural checks for DARKLAND.LOC.")
 
     if alchemy:
         if len(alchemy) != 0x42:
@@ -224,8 +259,6 @@ def validate_world_data(dl_path: str, overrides: dict | None = None) -> Validati
                     _add(issues, "error", "ALC/LST", f"Formula #{idx} ingredient #{slot + 1} references invalid item code {item_code}.")
                 if seen_empty:
                     _add(issues, "warning", "ALC", f"Formula #{idx} has non-empty ingredients after an empty slot.")
-                if prev_item_code > item_code:
-                    _add(issues, "warning", "ALC", f"Formula #{idx} ingredients are not sorted by item code.")
                 prev_item_code = item_code
 
     if enemy_types:
@@ -272,6 +305,18 @@ def validate_world_data(dl_path: str, overrides: dict | None = None) -> Validati
     cards = data.get("msg_cards")
     if cards is not None:
         issues.extend(validate_msg_cards(cards, data.get("msg_name") or "<MSG>", data.get("msgfiles_names", set())).issues)
+
+    msgfiles_path = os.path.join(dl_path, "MSGFILES")
+    if os.path.isfile(msgfiles_path):
+        try:
+            from darklands.reader_msgfiles import readData as read_msgfiles
+            archive = read_msgfiles(msgfiles_path)
+            for problem in archive.validate():
+                _add(issues, "warning", "MSGFILES", problem)
+            if len(archive.entries) != 419:
+                _add(issues, "warning", "MSGFILES", f"Expected 419 MSGFILES entries from stock data, found {len(archive.entries)}.")
+        except Exception as exc:
+            _add(issues, "warning", "MSGFILES", f"Could not validate MSGFILES: {exc}")
 
     return ValidationReport(issues)
 

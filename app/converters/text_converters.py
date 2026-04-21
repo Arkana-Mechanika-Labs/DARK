@@ -68,6 +68,8 @@ class DialogsConverter(QWidget):
         self._loading = False
         self._dirty = False
         self._original_cards = []
+        self._msgfiles_archive = None
+        self._current_msgfiles_entry = None
 
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 10, 14, 10)
@@ -145,6 +147,17 @@ class DialogsConverter(QWidget):
         self.file_list = QListWidget()
         self.file_list.itemClicked.connect(self._on_file_clicked)
         lay.addWidget(self.file_list)
+
+        meta_hdr = QLabel("Selected file info")
+        meta_hdr.setStyleSheet("font-weight: bold; color: #555;")
+        lay.addWidget(meta_hdr)
+
+        self._file_info = QPlainTextEdit()
+        self._file_info.setReadOnly(True)
+        self._file_info.setMaximumHeight(150)
+        self._file_info.setFont(QFont("Courier New", 8))
+        self._file_info.setPlainText("Select a directory or MSGFILES-backed message to inspect its catalog metadata.")
+        lay.addWidget(self._file_info)
         return left
 
     def _build_card_panel(self):
@@ -300,9 +313,12 @@ class DialogsConverter(QWidget):
         if not folder or not os.path.isdir(folder):
             return
         msgfiles_path = os.path.join(folder, "MSGFILES")
+        self._msgfiles_archive = None
         if os.path.isfile(msgfiles_path):
             try:
+                from darklands.reader_msgfiles import readData as read_msgfiles
                 from darklands.extract_cat import readEntries
+                self._msgfiles_archive = read_msgfiles(msgfiles_path)
                 entries = sorted(
                     (entry['name'] for entry in readEntries(msgfiles_path)
                      if entry['name'].upper().endswith('.MSG')),
@@ -344,6 +360,42 @@ class DialogsConverter(QWidget):
         else:
             self._load_file(path)
 
+    def _set_file_info(self, text: str):
+        self._file_info.setPlainText(text)
+
+    def _describe_msgfiles_entry(self, entry) -> str:
+        if entry is None or self._msgfiles_archive is None:
+            return "MSGFILES entry metadata unavailable."
+        lines = [
+            "Source: MSGFILES archive",
+            f"Archive: {os.path.basename(self._msgfiles_archive.path)}",
+            f"Entries: {len(self._msgfiles_archive.entries)}",
+            f"First payload offset: 0x{self._msgfiles_archive.first_payload_offset:04X} ({self._msgfiles_archive.first_payload_offset})",
+            "",
+            f"Index: {entry.index}",
+            f"Filename: {entry.filename}",
+            f"Raw field @0x0C: 0x{entry.raw_field_0c:08X} ({entry.raw_field_0c})",
+            f"Size: {entry.size} bytes",
+            f"Offset: 0x{entry.offset:08X} ({entry.offset})",
+        ]
+        problems = self._msgfiles_archive.validate()
+        if problems:
+            lines.extend(["", "Archive checks:"] + [f"- {problem}" for problem in problems[:4]])
+        else:
+            lines.extend(["", "Archive checks:", "- contiguous payload layout OK"])
+        return "\n".join(lines)
+
+    def _describe_directory_file(self, path: str) -> str:
+        try:
+            size = os.path.getsize(path)
+        except OSError:
+            size = 0
+        return "\n".join([
+            "Source: directory file",
+            f"Path: {path}",
+            f"Size: {size} bytes",
+        ])
+
     def _load_file(self, fpath: str):
         from darklands.reader_msg import readData
 
@@ -351,12 +403,14 @@ class DialogsConverter(QWidget):
         self._current_file = fpath
         self._current_catalog = ""
         self._current_entry_name = ""
+        self._current_msgfiles_entry = None
         self._current_card_idx = -1
         self._dirty = False
         self._original_cards = copy.deepcopy(self._cards)
         self._save_btn.setEnabled(False)
         self._status.setText(f"Loaded {os.path.basename(fpath)}")
         self.editor_title.setText(os.path.basename(fpath))
+        self._set_file_info(self._describe_directory_file(fpath))
         self._rebuild_card_list()
         self._clear_editor()
         if self._cards:
@@ -372,6 +426,9 @@ class DialogsConverter(QWidget):
                 self._current_file = ""
                 self._current_catalog = cat_path
                 self._current_entry_name = entry['name']
+                self._current_msgfiles_entry = (
+                    self._msgfiles_archive.get(entry['name']) if self._msgfiles_archive else None
+                )
                 self._current_card_idx = -1
                 self._dirty = False
                 self._original_cards = copy.deepcopy(self._cards)
@@ -380,6 +437,7 @@ class DialogsConverter(QWidget):
                     f"Loaded {entry['name']} from {os.path.basename(cat_path)}"
                 )
                 self.editor_title.setText(f"{entry['name']}  [{os.path.basename(cat_path)}]")
+                self._set_file_info(self._describe_msgfiles_entry(self._current_msgfiles_entry))
                 self._rebuild_card_list()
                 self._clear_editor()
                 if self._cards:
@@ -722,6 +780,14 @@ class DialogsConverter(QWidget):
                         break
                 backup = backup_existing_file(self._current_catalog)
                 writeCat(self._current_catalog, entries)
+                if self._msgfiles_archive is not None and os.path.basename(self._current_catalog).upper() == "MSGFILES":
+                    try:
+                        from darklands.reader_msgfiles import readData as read_msgfiles
+                        self._msgfiles_archive = read_msgfiles(self._current_catalog)
+                        self._current_msgfiles_entry = self._msgfiles_archive.get(self._current_entry_name)
+                        self._set_file_info(self._describe_msgfiles_entry(self._current_msgfiles_entry))
+                    except Exception:
+                        pass
                 saved_name = (
                     f"{self._current_entry_name} [{os.path.basename(self._current_catalog)}] "
                     f"({backup_label(backup)})"
