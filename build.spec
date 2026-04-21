@@ -1,0 +1,97 @@
+# PyInstaller spec for DARK: Darklands Authoring & Resource Kit
+# Build:  pyinstaller build.spec
+
+import os
+
+block_cipher = None
+here = os.path.abspath(os.path.dirname(SPEC))  # noqa: F821 (SPEC is injected by PyInstaller)
+
+a = Analysis(
+    [os.path.join(here, "main.py")],
+    pathex=[
+        here,
+        os.path.join(here, "vendor"),
+    ],
+    binaries=[],
+    datas=[
+        (os.path.join(here, "vendor", "darklands"), "darklands"),
+        (os.path.join(here, "app"), "app"),
+        (os.path.join(here, "README.txt"), "."),
+    ],
+    hiddenimports=[
+        "darklands.utils",
+        "darklands.lzw",
+        "darklands.rle",
+        "darklands.reader_enm",
+        "darklands.reader_loc",
+        "darklands.reader_lst",
+        "darklands.reader_map",
+        "darklands.reader_msg",
+        "darklands.reader_drle",
+        "darklands.reader_enemypal",
+        "darklands.reader_imc",
+        "darklands.reader_sav",
+        "darklands.extract_cat",
+        "darklands.format_dsc",
+        "darklands.format_cty",
+        "darklands.format_fnt",
+        "darklands.format_pic",
+        "darklands.palette_context",
+        "darklands.writer_map",
+        "app.branding",
+        "app.file_ops",
+        "app.format_coverage",
+        "app.settings",
+        "app.theme",
+        "app.validation",
+        "app.widgets.hex_view",
+        "app.converters.about_converter",
+        "app.converters.archive_converter",
+        "app.converters.audio_converters",
+        "app.converters.coverage_dialog",
+        "app.converters.data_converters",
+        "app.converters.data_editors",
+        "app.converters.font_converter",
+        "app.converters.image_converters",
+        "app.converters.kb_note_dialog",
+        "app.converters.map_graphics",
+        "app.converters.research_converters",
+        "app.converters.save_converter",
+        "app.converters.text_converters",
+        "app.converters.validation_dialog",
+        "PySide6.QtMultimedia",
+    ],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=["pygame"],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)  # noqa: F821
+
+exe = EXE(  # noqa: F821
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    [],
+    name="DARK",
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=None,
+)
