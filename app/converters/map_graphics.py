@@ -553,6 +553,14 @@ def _repaint_tiles(pm: QPixmap, tiles: list[tuple[int, int]], s: int,
 
 # ── Info-card HTML ───────────────────────────────────────────────────────────
 
+def _city_flag_label(flag: str) -> str:
+    try:
+        from darklands.format_cty import city_content_label
+        return city_content_label(flag)
+    except Exception:
+        return flag.replace("has_", "").replace("_", " ")
+
+
 def _location_html(loc: dict, city=None, desc: str = "") -> str:
     from darklands.utils import tchars
     lines: list[str] = []
@@ -571,10 +579,9 @@ def _location_html(loc: dict, city=None, desc: str = "") -> str:
         lines.append(f"<p>{city.str_city_type} &nbsp;·&nbsp; Size {city.city_size}</p>")
 
         yes = [
-            k[4:].replace("_", " ").title()
+            _city_flag_label(k).title()
             for k, v in city.city_contents.items()
-            if v and not k.startswith("has_no") and not k.startswith("has_const")
-               and not k.startswith("has_unknown") and not k.startswith("has_polit")
+            if v and not k.startswith("has_constant") and k != "has_polit"
         ]
         if yes:
             lines.append("<b>Buildings:</b><br>")

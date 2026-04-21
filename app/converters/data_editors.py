@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
 )
 
-from vendor.darklands.format_cty import CITY_CONTENT_FLAGS
+from vendor.darklands.format_cty import CITY_CONTENT_FLAGS, city_content_label
 from vendor.darklands.reader_loc import locTypes
 from app.file_ops import backup_existing_file, backup_label
 from app.validation import filter_issues, summarize_issues, validate_world_data
@@ -972,7 +972,7 @@ class CitiesConverter(QWidget, _DirtyMixin):
         flags = QGroupBox("City Contents")
         grid = QGridLayout(flags)
         for i, flag in enumerate(CITY_CONTENT_FLAGS):
-            cb = QCheckBox(flag.replace("has_", "").replace("_", " "))
+            cb = QCheckBox(city_content_label(flag))
             cb.toggled.connect(self._apply_form)
             self._checks[flag] = cb
             grid.addWidget(cb, i // 2, i % 2)

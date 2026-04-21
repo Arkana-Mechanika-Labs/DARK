@@ -11,6 +11,7 @@
 - Expanded validation issue navigation so related `ALC` and `MSG/MSGFILES` findings can jump straight into the corresponding editor content.
 - Added in-editor validation badges and scoped `Issues...` actions across the main structured editors.
 - Added per-record issue markers in enemy, city, formula, alchemy, and MSG card lists so affected rows are visibly flagged.
+- Corrected the city-contents fortress label from `no fortress` to `fortress` after a stock-data audit of `DARKLAND.CTY`.
 - Updated format coverage so `DARKLAND.ALC` is now marked as editable.
 - Renamed public `WIP` tooling labels to `Research` for a cleaner public-facing UI.
 - Cleaned the public repo presentation, including README encoding fixes and removal of old vendor demo/debug entry points.

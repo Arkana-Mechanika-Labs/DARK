@@ -6,10 +6,33 @@ from .utils import cstrim, encode_dl_bytes, tchars
 city_types = ('Free City', 'Ruled City', 'Capital')
 CITY_CONTENT_FLAGS = (
     'has_kloster', 'has_slums', 'has_unknown1', 'has_cathedral', 'has_unknown2',
-    'has_no_fortress', 'has_town_hall', 'has_polit', 'has_constant1', 'has_constant2',
+    'has_fortress', 'has_town_hall', 'has_polit', 'has_constant1', 'has_constant2',
     'has_constant3', 'has_constant4', 'has_docks', 'has_unknown3', 'has_pawnshop',
     'has_university',
 )
+
+CITY_CONTENT_LABELS = {
+    'has_kloster': 'kloster',
+    'has_slums': 'slums',
+    'has_unknown1': 'gate/tower/armory?',
+    'has_cathedral': 'cathedral',
+    'has_unknown2': 'core city bit (const?)',
+    'has_fortress': 'fortress',
+    'has_town_hall': 'town hall',
+    'has_polit': 'political center',
+    'has_constant1': 'reserved bit 1',
+    'has_constant2': 'reserved bit 2',
+    'has_constant3': 'reserved bit 3',
+    'has_constant4': 'reserved bit 4',
+    'has_docks': 'docks',
+    'has_unknown3': 'munzenplatz?',
+    'has_pawnshop': 'pawnshop',
+    'has_university': 'university',
+}
+
+
+def city_content_label(flag: str) -> str:
+    return CITY_CONTENT_LABELS.get(flag, flag.replace('has_', '').replace('_', ' '))
 
 
 class City:
