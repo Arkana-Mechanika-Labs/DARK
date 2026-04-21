@@ -5,6 +5,8 @@
 - Added `DARKLAND.ALC` parsing, writing, and validation support.
 - Added a linked `Alchemy` tab to the `Items, Saints, Formulae & Alchemy` editor.
 - Added alchemy ingredient validation against `DARKLAND.LST` item codes.
+- Added low-level `MSGFILES` archive inspection with entry index, raw field `0x0C`, size, and offset metadata in the dialog editor.
+- Added confirmed structural validation checks for `MSGFILES`, `DARKLAND.LOC`, and selected `CTY` consistency rules.
 - Updated format coverage so `DARKLAND.ALC` is now marked as editable.
 - Improved local release workflow support for the standalone DARK repo.
 
