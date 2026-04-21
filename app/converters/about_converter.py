@@ -98,6 +98,7 @@ class AboutDialog(QDialog):
             "\n"
             "Merle\n"
             "Joel \"Quadko\" McIntyre\n"
+            "M. Gutsohn (Nurnberg project), for additional file-format information\n"
             "The whole Darklands Yahoo Group\n"
             "\n"
             "Dedicated to the memory of Arnold Hendrick."

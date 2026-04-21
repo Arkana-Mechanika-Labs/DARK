@@ -14,6 +14,7 @@
 - Updated format coverage so `DARKLAND.ALC` is now marked as editable.
 - Renamed public `WIP` tooling labels to `Research` for a cleaner public-facing UI.
 - Cleaned the public repo presentation, including README encoding fixes and removal of old vendor demo/debug entry points.
+- Updated the in-app About dialog credits to include M. Gutsohn (Nurnberg project) for additional file-format information.
 - Improved local release workflow support for the standalone DARK repo.
 
 ## 0.9b
