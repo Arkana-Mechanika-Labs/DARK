@@ -476,7 +476,7 @@ class DialogsConverter(QWidget):
             "",
             f"Index: {entry.index}",
             f"Filename: {entry.filename}",
-            f"Raw field @0x0C: 0x{entry.raw_field_0c:08X} ({entry.raw_field_0c})",
+            f"Raw field @0x0C (unknown/raw): 0x{entry.raw_field_0c:08X} ({entry.raw_field_0c})",
             f"Size: {entry.size} bytes",
             f"Offset: 0x{entry.offset:08X} ({entry.offset})",
         ]

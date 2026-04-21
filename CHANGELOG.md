@@ -17,6 +17,7 @@
 - Cleaned the public repo presentation, including README encoding fixes and removal of old vendor demo/debug entry points.
 - Updated the in-app About dialog credits to include M. Gutsohn (Nurnberg project) for additional file-format information.
 - Improved local release workflow support for the standalone DARK repo.
+- Clarified the dialog-editor `MSGFILES` metadata panel so the `0x0C` archive field is explicitly labeled as unknown/raw.
 
 ## 0.9b
 
