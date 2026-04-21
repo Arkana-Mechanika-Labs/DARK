@@ -76,6 +76,7 @@ The included `README.txt` is kept as the packaged distribution readme for releas
 
 - Merle
 - Joel "Quadko" McIntyre
+- M. Gutsohn (Nurnberg project), for additional file-format information
 - The whole Darklands Yahoo Group
 
 Dedicated to the memory of Arnold Hendrick.
