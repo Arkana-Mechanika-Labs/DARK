@@ -37,6 +37,32 @@ _OPTION_KINDS = {"STD", "PTN", "SNT", "BTL"}
 _VAR_RE = re.compile(r"\$[A-Za-z][A-Za-z0-9_]*")
 
 
+def _set_validation_label(label: QLabel, issues: list):
+    errors = sum(1 for issue in issues if issue.severity == "error")
+    warnings = sum(1 for issue in issues if issue.severity == "warning")
+    if errors:
+        label.setText(f"Validation: {errors} error(s), {warnings} warning(s)")
+        label.setStyleSheet("color: #c75050; font-weight: bold;")
+    elif warnings:
+        label.setText(f"Validation: {warnings} warning(s)")
+        label.setStyleSheet("color: #c28a2c;")
+    else:
+        label.setText("Validation: clean")
+        label.setStyleSheet("color: #5d996c;")
+
+
+def _show_issue_details(parent, title: str, issues: list):
+    box = QMessageBox(parent)
+    box.setWindowTitle(title)
+    box.setIcon(QMessageBox.Icon.Warning if issues else QMessageBox.Icon.Information)
+    if issues:
+        box.setText(f"{len(issues)} validation issue(s) in this editor scope.")
+        box.setDetailedText(summarize_issues(issues, max_lines=32))
+    else:
+        box.setText("No validation issues in this editor scope.")
+    box.exec()
+
+
 class DescriptionsConverter(TextConverter):
     def __init__(self, parent=None):
         super().__init__("Descriptions (DARKLAND.DSC)", parent)
@@ -102,6 +128,12 @@ class DialogsConverter(QWidget):
         self._status = QLabel("")
         self._status.setStyleSheet("color: #666; font-style: italic;")
         action_row.addWidget(self._status)
+        self._validation_lbl = QLabel("")
+        self._validation_lbl.setStyleSheet("color: #777;")
+        action_row.addWidget(self._validation_lbl)
+        self._issues_btn = QPushButton("Issues...")
+        self._issues_btn.clicked.connect(self._show_validation_details)
+        action_row.addWidget(self._issues_btn)
         action_row.addStretch()
 
         copy_btn = QPushButton("Copy Preview")
@@ -404,6 +436,25 @@ class DialogsConverter(QWidget):
     def _set_file_info(self, text: str):
         self._file_info.setPlainText(text)
 
+    def _refresh_validation_badge(self):
+        if not self._cards:
+            self._validation_lbl.setText("")
+            self._issues_btn.setEnabled(False)
+            return
+        issues = self._validation_issues()
+        _set_validation_label(self._validation_lbl, issues)
+        self._issues_btn.setEnabled(True)
+
+    def _validation_issues(self):
+        msg_name = self._current_entry_name or os.path.basename(self._current_file) or "<MSG>"
+        msgfiles_names = []
+        if self._msgfiles_archive is not None:
+            msgfiles_names = [entry.filename for entry in self._msgfiles_archive.entries]
+        return validate_msg_cards(self._cards, msg_name, msgfiles_names).issues
+
+    def _show_validation_details(self):
+        _show_issue_details(self, "Dialog Validation", self._validation_issues())
+
     def _describe_msgfiles_entry(self, entry) -> str:
         if entry is None or self._msgfiles_archive is None:
             return "MSGFILES entry metadata unavailable."
@@ -452,6 +503,7 @@ class DialogsConverter(QWidget):
         self._status.setText(f"Loaded {os.path.basename(fpath)}")
         self.editor_title.setText(os.path.basename(fpath))
         self._set_file_info(self._describe_directory_file(fpath))
+        self._refresh_validation_badge()
         self._rebuild_card_list()
         self._clear_editor()
         if self._cards:
@@ -479,6 +531,7 @@ class DialogsConverter(QWidget):
                 )
                 self.editor_title.setText(f"{entry['name']}  [{os.path.basename(cat_path)}]")
                 self._set_file_info(self._describe_msgfiles_entry(self._current_msgfiles_entry))
+                self._refresh_validation_badge()
                 self._rebuild_card_list()
                 self._clear_editor()
                 if self._cards:
@@ -514,6 +567,7 @@ class DialogsConverter(QWidget):
             self._status.setText(f"Loaded {entry_name} from {os.path.basename(cat_path)}")
             self.editor_title.setText(f"{entry_name}  [{os.path.basename(cat_path)}]")
             self._set_file_info(self._describe_msgfiles_entry(self._current_msgfiles_entry))
+            self._refresh_validation_badge()
             self._rebuild_card_list()
             self._clear_editor()
             if self._cards:
@@ -678,6 +732,7 @@ class DialogsConverter(QWidget):
         self._dirty = True
         self._save_btn.setEnabled(True)
         self._status.setText(message)
+        self._refresh_validation_badge()
 
     def _on_header_changed(self):
         if self._loading:
@@ -878,5 +933,6 @@ class DialogsConverter(QWidget):
             self._original_cards = copy.deepcopy(self._cards)
             self._save_btn.setEnabled(False)
             self._status.setText(f"Saved {saved_name}")
+            self._refresh_validation_badge()
         except Exception as exc:
             QMessageBox.critical(self, "Save error", str(exc))

@@ -50,6 +50,32 @@ def _confirm_validation(parent, dl_path: str, scopes: tuple[str, ...], overrides
     return box.clickedButton() is save_btn
 
 
+def _set_validation_label(label: QLabel, issues: list):
+    errors = sum(1 for issue in issues if issue.severity == "error")
+    warnings = sum(1 for issue in issues if issue.severity == "warning")
+    if errors:
+        label.setText(f"Validation: {errors} error(s), {warnings} warning(s)")
+        label.setStyleSheet("color: #c75050; font-weight: bold;")
+    elif warnings:
+        label.setText(f"Validation: {warnings} warning(s)")
+        label.setStyleSheet("color: #c28a2c;")
+    else:
+        label.setText("Validation: clean")
+        label.setStyleSheet("color: #5d996c;")
+
+
+def _show_issue_details(parent, title: str, issues: list):
+    box = QMessageBox(parent)
+    box.setWindowTitle(title)
+    box.setIcon(QMessageBox.Icon.Warning if issues else QMessageBox.Icon.Information)
+    if issues:
+        box.setText(f"{len(issues)} validation issue(s) in this editor scope.")
+        box.setDetailedText(summarize_issues(issues, max_lines=32))
+    else:
+        box.setText("No validation issues in this editor scope.")
+    box.exec()
+
+
 # ---------------------------------------------------------------------------
 # Enemies — editable form UI
 # ---------------------------------------------------------------------------
@@ -318,6 +344,12 @@ class EnemiesConverter(QWidget):
         self._status_lbl = QLabel("")
         self._status_lbl.setStyleSheet("color: #666; font-style: italic;")
         action_row.addWidget(self._status_lbl)
+        self._validation_status_lbl = QLabel("")
+        self._validation_status_lbl.setStyleSheet("color: #777;")
+        action_row.addWidget(self._validation_status_lbl)
+        self._issues_btn = QPushButton("Issues...")
+        self._issues_btn.clicked.connect(self._show_validation_details)
+        action_row.addWidget(self._issues_btn)
         self._undo_btn = QPushButton("Revert Current")
         self._undo_btn.setEnabled(False)
         self._undo_btn.clicked.connect(self._undo_current)
@@ -833,6 +865,7 @@ class EnemiesConverter(QWidget):
         self._status_lbl.setText(
             f"Loaded {len(self._enemy_types)} types, {len(self._enemies)} encounters."
         )
+        self._refresh_validation_badge()
         self._apply_type_filter()
         self._apply_enc_filter()
 
@@ -1018,9 +1051,29 @@ class EnemiesConverter(QWidget):
             )
         elif self._status_lbl.text().startswith("Unsaved changes:"):
             self._status_lbl.setText("No unsaved enemy changes.")
+        self._refresh_validation_badge()
         self._refresh_list_markers()
         self._refresh_detail_panels()
         self._refresh_editor_highlights()
+
+    def _refresh_validation_badge(self):
+        if not self.dl_path or not self._enemy_types:
+            self._validation_status_lbl.setText("")
+            self._issues_btn.setEnabled(False)
+            return
+        issues = self._validation_issues()
+        _set_validation_label(self._validation_status_lbl, issues)
+        self._issues_btn.setEnabled(True)
+
+    def _validation_issues(self):
+        report = validate_world_data(
+            self.dl_path,
+            {"enemy_types": self._enemy_types, "enemies": self._enemies},
+        )
+        return filter_issues(report, ("ENM", "ENM/LST", "ENM/ENEMYPAL"))
+
+    def _show_validation_details(self):
+        _show_issue_details(self, "Enemy Validation", self._validation_issues())
 
     def _type_change_count(self, idx: int) -> int:
         if idx < 0 or idx >= len(self._enemy_types) or not self._orig_enemy_types:
@@ -1589,6 +1642,7 @@ class EnemiesConverter(QWidget):
             self._status_lbl.setText(
                 f"Saved {len(data):,} bytes -> {os.path.basename(fname)} ({backup_label(backup)})"
             )
+            self._refresh_validation_badge()
             self._refresh_editor_highlights()
         except OSError as exc:
             QMessageBox.critical(self, "Save error", str(exc))

@@ -107,6 +107,32 @@ def _confirm_validation(parent, dl_path: str, scopes: tuple[str, ...], overrides
     return box.clickedButton() is save_btn
 
 
+def _set_validation_label(label: QLabel, issues: list):
+    errors = sum(1 for issue in issues if issue.severity == "error")
+    warnings = sum(1 for issue in issues if issue.severity == "warning")
+    if errors:
+        label.setText(f"Validation: {errors} error(s), {warnings} warning(s)")
+        label.setStyleSheet("color: #c75050; font-weight: bold;")
+    elif warnings:
+        label.setText(f"Validation: {warnings} warning(s)")
+        label.setStyleSheet("color: #c28a2c;")
+    else:
+        label.setText("Validation: clean")
+        label.setStyleSheet("color: #5d996c;")
+
+
+def _show_issue_details(parent, title: str, issues: list):
+    box = QMessageBox(parent)
+    box.setWindowTitle(title)
+    box.setIcon(QMessageBox.Icon.Warning if issues else QMessageBox.Icon.Information)
+    if issues:
+        box.setText(f"{len(issues)} validation issue(s) in this editor scope.")
+        box.setDetailedText(summarize_issues(issues, max_lines=32))
+    else:
+        box.setText("No validation issues in this editor scope.")
+    box.exec()
+
+
 class _DirtyMixin:
     def _mark_dirty(self, text: str):
         if getattr(self, "_loading", False):
@@ -173,6 +199,12 @@ class LocationsConverter(QWidget, _DirtyMixin):
         self._status_lbl = QLabel("Set the DL path to load locations.")
         self._status_lbl.setStyleSheet("color: #777;")
         action.addWidget(self._status_lbl)
+        self._validation_lbl = QLabel("")
+        self._validation_lbl.setStyleSheet("color: #777;")
+        action.addWidget(self._validation_lbl)
+        self._issues_btn = QPushButton("Issues...")
+        self._issues_btn.clicked.connect(self._show_validation_details)
+        action.addWidget(self._issues_btn)
         action.addStretch()
         self._undo_hist_btn = QPushButton("Undo")
         self._undo_hist_btn.setEnabled(False)
@@ -262,6 +294,7 @@ class LocationsConverter(QWidget, _DirtyMixin):
         self._history_row = None
         self._update_history_buttons()
         self._status_lbl.setText(f"Loaded {len(self._locations)} locations.")
+        self._refresh_validation_badge()
         self._apply_filter()
         if self._locations:
             self._list.setCurrentRow(0)
@@ -343,8 +376,25 @@ class LocationsConverter(QWidget, _DirtyMixin):
         self._dirty = self._locations != self._original_locations
         self._save_btn.setEnabled(self._dirty)
         self._status_lbl.setText(text if self._dirty else "No unsaved location changes.")
+        self._refresh_validation_badge()
         self._refresh_field_highlights()
         self._refresh_list_item(self._index)
+
+    def _refresh_validation_badge(self):
+        if not self.dl_path or not self._locations:
+            self._validation_lbl.setText("")
+            self._issues_btn.setEnabled(False)
+            return
+        issues = self._validation_issues()
+        _set_validation_label(self._validation_lbl, issues)
+        self._issues_btn.setEnabled(True)
+
+    def _validation_issues(self):
+        report = validate_world_data(self.dl_path, {"locations": self._locations})
+        return filter_issues(report, ("LOC", "LOC/CTY"))
+
+    def _show_validation_details(self):
+        _show_issue_details(self, "Location Validation", self._validation_issues())
 
     def _changed_field_count(self, row: int) -> int:
         if row < 0 or row >= len(self._locations):
@@ -484,6 +534,7 @@ class LocationsConverter(QWidget, _DirtyMixin):
         self._history_row = None
         self._update_history_buttons()
         self._status_lbl.setText(f"Saved DARKLAND.LOC ({backup_label(backup)})")
+        self._refresh_validation_badge()
         self._refresh_field_highlights()
 
 
@@ -534,6 +585,12 @@ class DescriptionsConverter(QWidget, _DirtyMixin):
         self._status_lbl = QLabel("Set the DL path to load descriptions.")
         self._status_lbl.setStyleSheet("color: #777;")
         action.addWidget(self._status_lbl)
+        self._validation_lbl = QLabel("")
+        self._validation_lbl.setStyleSheet("color: #777;")
+        action.addWidget(self._validation_lbl)
+        self._issues_btn = QPushButton("Issues...")
+        self._issues_btn.clicked.connect(self._show_validation_details)
+        action.addWidget(self._issues_btn)
         action.addStretch()
         self._undo_hist_btn = QPushButton("Undo")
         self._undo_hist_btn.setEnabled(False)
@@ -574,6 +631,7 @@ class DescriptionsConverter(QWidget, _DirtyMixin):
         self._history_row = None
         self._update_history_buttons()
         self._status_lbl.setText(f"Loaded {len(self._descs)} descriptions.")
+        self._refresh_validation_badge()
         self._apply_filter()
         if self._descs:
             self._list.setCurrentRow(0)
@@ -616,10 +674,27 @@ class DescriptionsConverter(QWidget, _DirtyMixin):
         self._dirty = self._descs != self._original_descs
         self._save_btn.setEnabled(self._dirty)
         self._status_lbl.setText(text if self._dirty else "No unsaved description changes.")
+        self._refresh_validation_badge()
         self._refresh_field_highlights()
         row = self._list.currentRow()
         if row >= 0:
             self._refresh_list_item(row)
+
+    def _refresh_validation_badge(self):
+        if not self.dl_path or not self._descs:
+            self._validation_lbl.setText("")
+            self._issues_btn.setEnabled(False)
+            return
+        issues = self._validation_issues()
+        _set_validation_label(self._validation_lbl, issues)
+        self._issues_btn.setEnabled(True)
+
+    def _validation_issues(self):
+        report = validate_world_data(self.dl_path, {"descs": self._descs})
+        return filter_issues(report, ("DSC", "CTY/DSC"))
+
+    def _show_validation_details(self):
+        _show_issue_details(self, "Description Validation", self._validation_issues())
 
     def _refresh_list_item(self, row: int):
         if row < 0 or row >= len(self._descs):
@@ -716,6 +791,7 @@ class DescriptionsConverter(QWidget, _DirtyMixin):
         self._history_row = None
         self._update_history_buttons()
         self._status_lbl.setText(f"Saved DARKLAND.DSC ({backup_label(backup)})")
+        self._refresh_validation_badge()
         self._refresh_field_highlights()
 
 
@@ -798,6 +874,12 @@ class CitiesConverter(QWidget, _DirtyMixin):
         self._status_lbl = QLabel("Set the DL path to load cities.")
         self._status_lbl.setStyleSheet("color: #777;")
         action.addWidget(self._status_lbl)
+        self._validation_lbl = QLabel("")
+        self._validation_lbl.setStyleSheet("color: #777;")
+        action.addWidget(self._validation_lbl)
+        self._issues_btn = QPushButton("Issues...")
+        self._issues_btn.clicked.connect(self._show_validation_details)
+        action.addWidget(self._issues_btn)
         action.addStretch()
         self._undo_hist_btn = QPushButton("Undo")
         self._undo_hist_btn.setEnabled(False)
@@ -913,6 +995,7 @@ class CitiesConverter(QWidget, _DirtyMixin):
         self._history_row = None
         self._update_history_buttons()
         self._status_lbl.setText(f"Loaded {len(self._cities)} cities.")
+        self._refresh_validation_badge()
         self._apply_filter()
         if self._cities:
             self._list.setCurrentRow(0)
@@ -996,8 +1079,25 @@ class CitiesConverter(QWidget, _DirtyMixin):
         self._dirty = any(city.__dict__ != orig.__dict__ for city, orig in zip(self._cities, self._original_cities))
         self._save_btn.setEnabled(self._dirty)
         self._status_lbl.setText(text if self._dirty else "No unsaved city changes.")
+        self._refresh_validation_badge()
         self._refresh_field_highlights()
         self._refresh_list_item(self._index)
+
+    def _refresh_validation_badge(self):
+        if not self.dl_path or not self._cities:
+            self._validation_lbl.setText("")
+            self._issues_btn.setEnabled(False)
+            return
+        issues = self._validation_issues()
+        _set_validation_label(self._validation_lbl, issues)
+        self._issues_btn.setEnabled(True)
+
+    def _validation_issues(self):
+        report = validate_world_data(self.dl_path, {"cities": self._cities})
+        return filter_issues(report, ("CTY", "CTY/DSC", "LOC/CTY"))
+
+    def _show_validation_details(self):
+        _show_issue_details(self, "City Validation", self._validation_issues())
 
     def _changed_field_count(self, row: int) -> int:
         if row < 0 or row >= len(self._cities):
@@ -1137,6 +1237,7 @@ class CitiesConverter(QWidget, _DirtyMixin):
         self._history_row = None
         self._update_history_buttons()
         self._status_lbl.setText(f"Saved DARKLAND.CTY ({backup_label(backup)})")
+        self._refresh_validation_badge()
         self._refresh_field_highlights()
 
 
@@ -1180,6 +1281,12 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._status_lbl = QLabel("Set the DL path to load list data.")
         self._status_lbl.setStyleSheet("color: #777;")
         action.addWidget(self._status_lbl)
+        self._validation_lbl = QLabel("")
+        self._validation_lbl.setStyleSheet("color: #777;")
+        action.addWidget(self._validation_lbl)
+        self._issues_btn = QPushButton("Issues...")
+        self._issues_btn.clicked.connect(self._show_validation_details)
+        action.addWidget(self._issues_btn)
         action.addStretch()
         self._undo_btn = QPushButton("Revert Selected")
         self._undo_btn.setEnabled(False)
@@ -1318,6 +1425,7 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._status_lbl.setText(
             f"Loaded {len(self._items)} items, {len(self._saints)} saints, {len(self._formulae)} formulae, {len(self._alchemy)} alchemy definitions."
         )
+        self._refresh_validation_badge()
         self._apply_filter()
         self._refresh_highlights()
 
@@ -1551,7 +1659,32 @@ class ItemsConverter(QWidget, _DirtyMixin):
         )
         self._save_btn.setEnabled(self._dirty)
         self._status_lbl.setText(text if self._dirty else "No unsaved list changes.")
+        self._refresh_validation_badge()
         self._refresh_highlights()
+
+    def _refresh_validation_badge(self):
+        if not self.dl_path or not self._items:
+            self._validation_lbl.setText("")
+            self._issues_btn.setEnabled(False)
+            return
+        issues = self._validation_issues()
+        _set_validation_label(self._validation_lbl, issues)
+        self._issues_btn.setEnabled(True)
+
+    def _validation_issues(self):
+        report = validate_world_data(
+            self.dl_path,
+            {
+                "items": self._items,
+                "saints": self._saints,
+                "formulae": self._formulae,
+                "alchemy": self._alchemy,
+            },
+        )
+        return filter_issues(report, ("ENM/LST", "ALC", "ALC/LST"))
+
+    def _show_validation_details(self):
+        _show_issue_details(self, "List / Alchemy Validation", self._validation_issues())
 
     def _apply_filter(self):
         needle = self._filter_edit.text().strip().lower()
@@ -1826,4 +1959,5 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._status_lbl.setText(
             f"Saved DARKLAND.LST, DARKLAND.SNT and DARKLAND.ALC ({backup_label(lst_backup)}, {backup_label(snt_backup)}, {backup_label(alc_backup)})"
         )
+        self._refresh_validation_badge()
         self._refresh_highlights()
