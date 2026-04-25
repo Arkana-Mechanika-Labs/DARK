@@ -1,3 +1,6 @@
+import importlib
+import re
+
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QAction, QActionGroup, QColor, QFont, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
@@ -20,7 +23,6 @@ from PySide6.QtWidgets import (
 from app.branding import APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME, APP_TAGLINE, load_app_icon, load_logo_pixmap
 from app.settings import AppSettings
 from app.theme import THEME_MODES, apply_theme
-import re
 
 
 _TREE_STRUCTURE = [
@@ -69,6 +71,7 @@ class MainWindow(QMainWindow):
 
         self._converter_widgets = []
         self._widget_by_title = {}
+        self._widget_specs = {}
         self._tree_item_by_title = {}
 
         central = QWidget()
@@ -226,16 +229,9 @@ class MainWindow(QMainWindow):
             self.tree.addTopLevelItem(cat_item)
 
             for item_name, module_name, class_name in items:
-                import importlib
-
-                mod = importlib.import_module(f"app.converters.{module_name}")
-                cls = getattr(mod, class_name)
-
-                widget = cls()
-                self._converter_widgets.append(widget)
-                self._widget_by_title[item_name] = widget
                 stack_idx = self.stack.count()
-                self.stack.addWidget(widget)
+                self.stack.addWidget(QWidget())
+                self._widget_specs[item_name] = (module_name, class_name, stack_idx)
 
                 child = QTreeWidgetItem([item_name])
                 child.setData(0, Qt.ItemDataRole.UserRole, stack_idx)
@@ -244,8 +240,6 @@ class MainWindow(QMainWindow):
                 self._tree_item_by_title[item_name] = child
 
             cat_item.setExpanded(True)
-
-        self._propagate_path(self.path_edit.text())
 
     def _make_category_icon(self) -> QIcon:
         pix = QPixmap(14, 14)
@@ -275,8 +269,12 @@ class MainWindow(QMainWindow):
         items = self.tree.selectedItems()
         if not items:
             return
-        idx = items[0].data(0, Qt.ItemDataRole.UserRole)
-        if idx is not None:
+        title = items[0].text(0)
+        if title not in self._widget_specs:
+            return
+        widget = self._ensure_editor_loaded(title)
+        if widget is not None:
+            idx = self._widget_specs[title][2]
             self.stack.setCurrentIndex(idx)
 
     def _browse_path(self):
@@ -292,6 +290,27 @@ class MainWindow(QMainWindow):
     def _propagate_path(self, path: str):
         for widget in self._converter_widgets:
             widget.set_dl_path(path)
+
+    def _ensure_editor_loaded(self, title: str):
+        widget = self._widget_by_title.get(title)
+        if widget is not None:
+            return widget
+        spec = self._widget_specs.get(title)
+        if spec is None:
+            return None
+        module_name, class_name, stack_idx = spec
+        mod = importlib.import_module(f"app.converters.{module_name}")
+        cls = getattr(mod, class_name)
+        widget = cls()
+        if self.path_edit.text():
+            widget.set_dl_path(self.path_edit.text())
+        old = self.stack.widget(stack_idx)
+        self.stack.removeWidget(old)
+        old.deleteLater()
+        self.stack.insertWidget(stack_idx, widget)
+        self._converter_widgets.append(widget)
+        self._widget_by_title[title] = widget
+        return widget
 
     def _show_about(self):
         from app.converters.about_converter import AboutDialog
@@ -315,11 +334,12 @@ class MainWindow(QMainWindow):
         item = self._tree_item_by_title.get(title)
         if item is None:
             return None
+        widget = self._ensure_editor_loaded(title)
         self.tree.setCurrentItem(item)
         idx = item.data(0, Qt.ItemDataRole.UserRole)
         if idx is not None:
             self.stack.setCurrentIndex(idx)
-        return self._widget_by_title.get(title)
+        return widget
 
     def open_archive_entry(self, editor_title: str, cat_path: str, entry_name: str, data: bytes | None = None) -> bool:
         widget = self.open_editor(editor_title)
