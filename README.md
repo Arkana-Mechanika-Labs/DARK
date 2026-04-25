@@ -13,7 +13,7 @@ Current scope includes:
 - world data: cities, locations, descriptions, items, saints, formulae, enemies
 - dialog cards and `MSGFILES`
 - `PIC` images and `IMC` tactical sprites
-- `PAN` presentation sequence playback
+- `PAN` presentation sequence playback with embedded VGA palettes, frame stepping, contact sheets, and frame export
 - font editing
 - `CAT` archive browsing and rebuilding
 - validation, coverage, and research-oriented tooling
@@ -27,13 +27,14 @@ Current scope includes:
 | Message editor | ![Message editor](screenshots/sc_msg.png) |
 | PIC viewer | ![PIC viewer](screenshots/sc_pic.png) |
 | IMC viewer | ![IMC viewer](screenshots/sc_imc.png) |
+| PAN sequence player | ![PAN sequence player](screenshots/sc_pan.png) |
 | Archive browser | ![Archive browser](screenshots/sc_cat.png) |
 | Item / saints / formulae editor | ![Items editor](screenshots/sc_itm.png) |
 | DGT audio tool | ![DGT audio](screenshots/sc_dgt.png) |
 
 ## Status
 
-This project is currently **0.9b2**.
+This project is currently **0.9b3**.
 
 Large parts of the app are already useful, but some areas are still experimental or under active research. In particular, some file families are supported only partially, and research-oriented placeholders still exist for formats that are not yet fully integrated.
 
