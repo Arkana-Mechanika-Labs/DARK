@@ -263,12 +263,12 @@ _RULES: tuple[CoverageRule, ...] = (
     CoverageRule(
         key="pan_files",
         patterns=("*.PAN",),
-        status="wip",
+        status="supported",
         category="presentation",
         family="PAN sequences",
-        editor_title="PAN Sequences (Research)",
+        editor_title="PAN Sequences",
         kb_doc="WIP/PAN/PAN_Format.md",
-        notes="Actively researched presentation/script format; not yet integrated in the browser.",
+        notes="Decoded presentation sequences with embedded VGA palettes and frame-delta playback.",
     ),
     CoverageRule(
         key="tmp_runtime",

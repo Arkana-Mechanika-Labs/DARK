@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9b3
+
+- Added decoded `PAN` sequence support with embedded-palette playback, frame stepping, contact sheets, and frame export.
+- Promoted `PAN` files from research placeholder coverage to supported presentation assets.
+
 ## 0.9b2
 
 - Added `DARKLAND.ALC` parsing, writing, and validation support.

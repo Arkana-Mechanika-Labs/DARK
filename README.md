@@ -13,6 +13,7 @@ Current scope includes:
 - world data: cities, locations, descriptions, items, saints, formulae, enemies
 - dialog cards and `MSGFILES`
 - `PIC` images and `IMC` tactical sprites
+- `PAN` presentation sequence playback
 - font editing
 - `CAT` archive browsing and rebuilding
 - validation, coverage, and research-oriented tooling

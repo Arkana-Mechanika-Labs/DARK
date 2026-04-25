@@ -51,7 +51,7 @@ _TREE_STRUCTURE = [
     ("Research", [
         ("DGT Audio",               "audio_converters",    "DgtAudioConverter"),
             ("IMG Banks (Research)",    "research_converters", "ImgResearchConverter"),
-            ("PAN Sequences (Research)","research_converters", "PanResearchConverter"),
+            ("PAN Sequences",          "research_converters", "PanResearchConverter"),
         ("Research Files",          "research_converters", "ResearchFilesConverter"),
         ("DRLE Decompressor",       "image_converters","DrleConverter"),
     ]),
