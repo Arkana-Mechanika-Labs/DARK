@@ -34,3 +34,9 @@ class AppSettings:
 
     def set_theme_mode(self, mode: str):
         self._s.setValue("theme_mode", mode)
+
+    def get_mt32_roms_path(self) -> str:
+        return self._value("mt32_roms_path", "")
+
+    def set_mt32_roms_path(self, path: str):
+        self._s.setValue("mt32_roms_path", path)

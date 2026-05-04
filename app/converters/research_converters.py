@@ -136,15 +136,293 @@ class _ResearchFileViewer(QWidget):
         dialog.exec()
 
 
-class ImgResearchConverter(_ResearchFileViewer):
+class ImgResearchConverter(QWidget):
+    _KNOWN_ROW_RUNS = (
+        ("HALLEN", 0x035E, "confirmed"),
+        ("CommonSlotTopEdge4D41", 0x013E, "confirmed"),
+        ("CommonSlotBottomEdge4D45", 0x017E, "confirmed"),
+        ("CommonSlotSideFrame4D49", 0x01BE, "confirmed"),
+        ("CommonSlotAltSideFrame4D56", 0x028E, "confirmed"),
+        ("KBATLMN", 0x045E, "confirmed"),
+        ("BCHANGE", 0x0CBE, "confirmed"),
+        ("EEP", 0x039E, "confirmed"),
+        ("CORIDO", 0x03DE, "candidate"),
+        ("KCONVER", 0x03FE, "candidate"),
+        ("KCNSTRN", 0x041E, "candidate"),
+        ("KCHAMAL", 0x043E, "candidate"),
+    )
+    _THUMB_ICON = QSize(112, 84)
+    _THUMB_GRID = QSize(132, 118)
+    _DEFAULT_PREVIEW_ZOOM = 6
+    _auto_on_path = True
+
     def __init__(self, parent=None):
-        super().__init__(
-            "IMG Banks (Research)",
-            ("*.IMG",),
-            "WIP/COMMONSP/COMMONSP_IMG.md",
-            "Placeholder viewer for IMG-family research files such as COMMONSP.IMG and BATTLEGR.IMG.",
-            parent,
+        super().__init__(parent)
+        self.dl_path = ""
+        self._kb_doc = resolve_kb_doc("WIP/COMMONSP/COMMONSP_IMG.md")
+        self._current_records = []
+        self._current_pixmaps: dict[str, QPixmap] = {}
+        self._build_ui()
+
+    def _build_ui(self):
+        root = QVBoxLayout(self)
+        root.setContentsMargins(14, 10, 14, 10)
+        root.setSpacing(8)
+
+        title = QLabel("IMG Banks")
+        title.setObjectName("pageTitle")
+        root.addWidget(title)
+
+        summary = QLabel(
+            "COMMONSP.IMG now has a display path in DARK based on the darklands_engine "
+            "research lane. Other IMG banks remain visible for triage, but may still be "
+            "unsupported or only partially understood."
         )
+        summary.setWordWrap(True)
+        root.addWidget(summary)
+
+        row = QHBoxLayout()
+        self._filter = QLineEdit()
+        self._filter.setPlaceholderText("Filter IMG files...")
+        self._filter.textChanged.connect(self._apply_filter)
+        row.addWidget(self._filter, stretch=1)
+        self._kb_btn = QPushButton("Show KB Note")
+        self._kb_btn.setEnabled(bool(self._kb_doc))
+        self._kb_btn.clicked.connect(self._show_kb_note)
+        row.addWidget(self._kb_btn)
+        root.addLayout(row)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        root.addWidget(splitter, stretch=1)
+
+        self._files = QListWidget()
+        self._files.setMinimumWidth(210)
+        self._files.currentRowChanged.connect(self._on_file_selected)
+        splitter.addWidget(self._files)
+
+        right = QWidget()
+        right_lay = QVBoxLayout(right)
+        right_lay.setContentsMargins(4, 0, 0, 0)
+        right_lay.setSpacing(6)
+
+        self._info = QLabel("Set a valid Darklands folder to browse IMG banks.")
+        self._info.setWordWrap(True)
+        self._info.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        right_lay.addWidget(self._info)
+
+        self._thumbs = QListWidget()
+        self._thumbs.setViewMode(QListWidget.ViewMode.IconMode)
+        self._thumbs.setMovement(QListWidget.Movement.Static)
+        self._thumbs.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self._thumbs.setWordWrap(True)
+        self._thumbs.setIconSize(self._THUMB_ICON)
+        self._thumbs.setGridSize(self._THUMB_GRID)
+        self._thumbs.setSpacing(6)
+        self._thumbs.currentItemChanged.connect(self._on_record_selected)
+        right_lay.addWidget(self._thumbs, stretch=1)
+
+        self._preview_scroll = QScrollArea()
+        self._preview_scroll.setWidgetResizable(False)
+        self._preview_label = QLabel("Select a decoded IMG record.")
+        self._preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._preview_scroll.setWidget(self._preview_label)
+        right_lay.addWidget(self._preview_scroll, stretch=1)
+
+        splitter.addWidget(right)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([230, 760])
+
+    def set_dl_path(self, path: str):
+        if path == self.dl_path:
+            return
+        self.dl_path = path
+        self._reload()
+
+    def focus_filter(self):
+        self._filter.setFocus()
+        self._filter.selectAll()
+
+    def _reload(self):
+        self._files.clear()
+        self._thumbs.clear()
+        self._current_records = []
+        self._current_pixmaps = {}
+        self._preview_label.setText("Select a decoded IMG record.")
+        self._preview_label.setPixmap(QPixmap())
+        if not self.dl_path or not os.path.isdir(self.dl_path):
+            self._info.setText("Set a valid Darklands folder to browse IMG banks.")
+            return
+        matches = []
+        for name in sorted(os.listdir(self.dl_path)):
+            full = os.path.join(self.dl_path, name)
+            if os.path.isfile(full) and name.upper().endswith(".IMG"):
+                matches.append(name)
+        for name in matches:
+            self._files.addItem(QListWidgetItem(name))
+        self._apply_filter()
+        if self._files.count():
+            self._files.setCurrentRow(0)
+        else:
+            self._info.setText("No IMG banks found in the current Darklands folder.")
+
+    def _apply_filter(self):
+        needle = self._filter.text().strip().lower()
+        first = -1
+        for row in range(self._files.count()):
+            item = self._files.item(row)
+            visible = not needle or needle in item.text().lower()
+            item.setHidden(not visible)
+            if visible and first < 0:
+                first = row
+        current = self._files.currentRow()
+        if current >= 0 and self._files.item(current).isHidden() and first >= 0:
+            self._files.setCurrentRow(first)
+
+    def _on_file_selected(self, row: int):
+        if row < 0 or row >= self._files.count():
+            return
+        item = self._files.item(row)
+        if item.isHidden():
+            return
+        self._load_img_file(os.path.join(self.dl_path, item.text()))
+
+    def _load_img_file(self, path: str):
+        self._thumbs.clear()
+        self._current_records = []
+        self._current_pixmaps = {}
+        self._preview_label.setText("Select a decoded IMG record.")
+        self._preview_label.setPixmap(QPixmap())
+        try:
+            data = open(path, "rb").read()
+        except OSError as exc:
+            self._info.setText(f"Failed to read {path}\n\n{exc}")
+            return
+
+        name = os.path.basename(path)
+        if name.upper() != "COMMONSP.IMG":
+            self._info.setText(
+                "\n".join(
+                    [
+                        f"File: {name}",
+                        f"Bytes: {len(data):,}",
+                        "",
+                        "This IMG bank is visible for triage, but DARK currently only has a",
+                        "research-backed display path for COMMONSP.IMG row-run records.",
+                    ]
+                )
+            )
+            return
+
+        records = self._decode_commonsp(data)
+        self._current_records = records
+        self._info.setText(
+            "\n".join(
+                [
+                    f"File: {name}",
+                    f"Bytes: {len(data):,}",
+                    f"Decoded COMMONSP row-run records: {len(records)}",
+                    "Palette assumption: default VGA research palette",
+                    "Coverage: confirmed and candidate COMMONSP.IMG row-run records",
+                ]
+            )
+        )
+        for record in records:
+            pm = self._row_run_to_pixmap(record["pixels"], record["width"], record["height"])
+            self._current_pixmaps[record["name"]] = pm
+            thumb = pm.scaled(
+                self._THUMB_ICON,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.FastTransformation,
+            )
+            label = f'{record["name"]}\n{record["width"]}x{record["height"]} ({record["status"]})'
+            item = QListWidgetItem(QIcon(thumb), label)
+            item.setData(Qt.ItemDataRole.UserRole, record["name"])
+            item.setToolTip(f'0x{record["offset"]:04X}  {record["status"]}')
+            self._thumbs.addItem(item)
+        if self._thumbs.count():
+            self._thumbs.setCurrentRow(0)
+
+    def _decode_commonsp(self, data: bytes):
+        records = []
+        for name, offset, status in self._KNOWN_ROW_RUNS:
+            decoded = self._decode_row_run(data, offset)
+            if decoded is None:
+                continue
+            width, height, pixels = decoded
+            records.append(
+                {
+                    "name": name,
+                    "offset": offset,
+                    "status": status,
+                    "width": width,
+                    "height": height,
+                    "pixels": pixels,
+                }
+            )
+        return records
+
+    def _decode_row_run(self, data: bytes, file_offset: int):
+        if file_offset < 0 or file_offset + 2 > len(data):
+            return None
+        width = data[file_offset]
+        height = data[file_offset + 1]
+        if not width or not height:
+            return None
+        pixels = bytearray(width * height)
+        offset = file_offset + 2
+        for row in range(height):
+            if offset + 2 > len(data):
+                return None
+            run_length = data[offset]
+            x_offset = data[offset + 1]
+            offset += 2
+            if x_offset + run_length > width or offset + run_length > len(data):
+                return None
+            base = row * width + x_offset
+            pixels[base:base + run_length] = data[offset:offset + run_length]
+            offset += run_length
+        return width, height, bytes(pixels)
+
+    def _row_run_to_pixmap(self, pixels: bytes, width: int, height: int) -> QPixmap:
+        try:
+            from darklands.format_pic import default_pal
+        except ModuleNotFoundError:
+            from vendor.darklands.format_pic import default_pal
+
+        buf = bytearray(width * height * 4)
+        for idx, pal_index in enumerate(pixels):
+            r_val, g_val, b_val = default_pal[pal_index]
+            off = idx * 4
+            buf[off] = b_val
+            buf[off + 1] = g_val
+            buf[off + 2] = r_val
+            buf[off + 3] = 0 if pal_index == 0 else 255
+        image = QImage(bytes(buf), width, height, QImage.Format.Format_ARGB32)
+        return QPixmap.fromImage(image)
+
+    def _on_record_selected(self, current: QListWidgetItem | None, _previous: QListWidgetItem | None):
+        if current is None:
+            return
+        name = current.data(Qt.ItemDataRole.UserRole)
+        pixmap = self._current_pixmaps.get(name)
+        if pixmap is None:
+            return
+        scaled = pixmap.scaled(
+            max(1, pixmap.width() * self._DEFAULT_PREVIEW_ZOOM),
+            max(1, pixmap.height() * self._DEFAULT_PREVIEW_ZOOM),
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.FastTransformation,
+        )
+        self._preview_label.setPixmap(scaled)
+        self._preview_label.resize(scaled.size())
+        self._preview_label.setText("")
+
+    def _show_kb_note(self):
+        if not self._kb_doc:
+            return
+        dialog = KbNoteDialog(self._kb_doc, self)
+        dialog.exec()
 
 
 class PanResearchConverter(_ResearchFileViewer):

@@ -61,6 +61,7 @@ a = Analysis(
         "app.converters.save_converter",
         "app.converters.text_converters",
         "app.converters.validation_dialog",
+        "PIL.Image",
         "PySide6.QtMultimedia",
     ],
     hookspath=[],

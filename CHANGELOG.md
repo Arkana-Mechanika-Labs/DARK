@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.91b
+
+- Reworked the PIC viewer into a thumbnail gallery with labeled file tiles, 300% default preview zoom, PNG export, and PNG-to-PIC import/save support.
+- Promoted COMMONSP.IMG display into DARK through the IMG Banks tool, while keeping unsupported IMG banks clearly marked as research-grade.
+- Added a research-backed MT-32 playback launcher for the RSOUND Roland module path with persistent ROM-folder configuration.
+
 ## 0.9b3
 
 - Added decoded `PAN` sequence support with embedded-palette playback, frame stepping, contact sheets, and frame export.

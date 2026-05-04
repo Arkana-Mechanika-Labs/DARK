@@ -19,6 +19,668 @@ from .base import ConverterWidget, TextConverter
 from app.widgets.hex_view import HexView
 
 
+class PicGalleryConverter(QWidget):
+    _ZOOM_STEPS = [0.25, 0.33, 0.5, 0.67, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0]
+    _THUMB_ICON = QSize(112, 84)
+    _THUMB_GRID = QSize(132, 118)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.dl_path = ""
+        self._current_pic = None
+        self._current_pixmap: QPixmap | None = None
+        self._selected_file: str | None = None
+        self._display_name = ""
+        self._zoom = 3.0
+        self._last_palette = None
+        self._last_palette_source = ""
+        self._palette_data_cache = {}
+        self._folder_pic_index = {}
+        self._resolved_palette_cache = {}
+        self._thumb_cache = {}
+        self._build_ui()
+
+    def _build_ui(self):
+        root = QVBoxLayout(self)
+        root.setContentsMargins(14, 10, 14, 10)
+        root.setSpacing(8)
+
+        title = QLabel("PIC Image Viewer")
+        title.setObjectName("pageTitle")
+        root.addWidget(title)
+        summary = QLabel(
+            "Browse loose PIC files as thumbnails, inspect them at full size, "
+            "export them as PNG, and import PNGs back into PIC format."
+        )
+        summary.setWordWrap(True)
+        root.addWidget(summary)
+
+        folder_row = QHBoxLayout()
+        folder_row.addWidget(QLabel("Folder:"))
+        self.folder_edit = QLineEdit()
+        self.folder_edit.setReadOnly(True)
+        self.folder_edit.setPlaceholderText("PIC folder")
+        folder_row.addWidget(self.folder_edit, stretch=1)
+        browse_folder_btn = QPushButton("...")
+        browse_folder_btn.setFixedWidth(28)
+        browse_folder_btn.clicked.connect(self._browse_folder)
+        folder_row.addWidget(browse_folder_btn)
+        root.addLayout(folder_row)
+
+        filter_row = QHBoxLayout()
+        self.filter_edit = QLineEdit()
+        self.filter_edit.setPlaceholderText("Filter PIC files...")
+        self.filter_edit.textChanged.connect(self._apply_filter)
+        filter_row.addWidget(self.filter_edit, stretch=1)
+        filter_row.addWidget(QLabel("Palette override:"))
+        self.pal_edit = QLineEdit()
+        self.pal_edit.setPlaceholderText("Optional palette donor PIC")
+        self.pal_edit.editingFinished.connect(self._palette_override_changed)
+        filter_row.addWidget(self.pal_edit, stretch=1)
+        pal_btn = QPushButton("...")
+        pal_btn.setFixedWidth(28)
+        pal_btn.clicked.connect(self._browse_pal)
+        filter_row.addWidget(pal_btn)
+        root.addLayout(filter_row)
+
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        root.addWidget(splitter, stretch=1)
+
+        left = QWidget()
+        left_lay = QVBoxLayout(left)
+        left_lay.setContentsMargins(0, 0, 6, 0)
+        self.file_list = QListWidget()
+        self.file_list.setViewMode(QListWidget.ViewMode.IconMode)
+        self.file_list.setMovement(QListWidget.Movement.Static)
+        self.file_list.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.file_list.setWordWrap(True)
+        self.file_list.setIconSize(self._THUMB_ICON)
+        self.file_list.setGridSize(self._THUMB_GRID)
+        self.file_list.setSpacing(6)
+        self.file_list.currentItemChanged.connect(self._on_item_changed)
+        left_lay.addWidget(self.file_list)
+        splitter.addWidget(left)
+
+        right = QWidget()
+        right_lay = QVBoxLayout(right)
+        right_lay.setContentsMargins(4, 0, 0, 0)
+        right_lay.setSpacing(6)
+        self._info_label = QLabel("Set a valid Darklands folder to browse PIC files.")
+        self._info_label.setWordWrap(True)
+        self._info_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        right_lay.addWidget(self._info_label)
+        self._palette_info = QLabel("")
+        self._palette_info.setWordWrap(True)
+        self._palette_info.setStyleSheet("color: #666; font-size: 8pt;")
+        right_lay.addWidget(self._palette_info)
+
+        zoom_row = QHBoxLayout()
+        zoom_row.addStretch()
+        zoom_row.addWidget(QLabel("Zoom:"))
+        zoom_out_btn = QPushButton("-")
+        zoom_out_btn.setFixedWidth(26)
+        zoom_out_btn.clicked.connect(self._zoom_out)
+        zoom_row.addWidget(zoom_out_btn)
+        self._zoom_label = QLabel("300%")
+        self._zoom_label.setFixedWidth(48)
+        self._zoom_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        zoom_row.addWidget(self._zoom_label)
+        zoom_in_btn = QPushButton("+")
+        zoom_in_btn.setFixedWidth(26)
+        zoom_in_btn.clicked.connect(self._zoom_in)
+        zoom_row.addWidget(zoom_in_btn)
+        zoom_reset_btn = QPushButton("1:1")
+        zoom_reset_btn.setFixedWidth(34)
+        zoom_reset_btn.clicked.connect(self._zoom_reset)
+        zoom_row.addWidget(zoom_reset_btn)
+        right_lay.addLayout(zoom_row)
+
+        preview_split = QSplitter(Qt.Orientation.Vertical)
+        right_lay.addWidget(preview_split, stretch=1)
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(False)
+        self._image_label = QLabel("Select a PIC thumbnail.")
+        self._image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._scroll.setWidget(self._image_label)
+        self._scroll.viewport().installEventFilter(self)
+        preview_split.addWidget(self._scroll)
+
+        palette_panel = QFrame()
+        palette_lay = QVBoxLayout(palette_panel)
+        palette_lay.setContentsMargins(6, 6, 6, 6)
+        palette_title = QLabel("Palette")
+        palette_title.setStyleSheet("font-weight: bold;")
+        palette_lay.addWidget(palette_title)
+        self._palette_scroll = QScrollArea()
+        self._palette_scroll.setWidgetResizable(False)
+        self._palette_label = QLabel("Palette preview will appear here.")
+        self._palette_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._palette_scroll.setWidget(self._palette_label)
+        palette_lay.addWidget(self._palette_scroll, stretch=1)
+        preview_split.addWidget(palette_panel)
+        preview_split.setStretchFactor(0, 1)
+        preview_split.setStretchFactor(1, 0)
+        preview_split.setSizes([560, 210])
+
+        splitter.addWidget(right)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([320, 760])
+
+        action_row = QHBoxLayout()
+        self.import_btn = QPushButton("Import PNG...")
+        self.import_btn.clicked.connect(self._import_png)
+        action_row.addWidget(self.import_btn)
+        self.save_pic_btn = QPushButton("Save PIC")
+        self.save_pic_btn.clicked.connect(self._save_pic)
+        action_row.addWidget(self.save_pic_btn)
+        self.save_pic_as_btn = QPushButton("Save PIC As...")
+        self.save_pic_as_btn.clicked.connect(self._save_pic_as)
+        action_row.addWidget(self.save_pic_as_btn)
+        self.save_png_btn = QPushButton("Export PNG...")
+        self.save_png_btn.clicked.connect(self._save_png)
+        action_row.addWidget(self.save_png_btn)
+        action_row.addStretch()
+        root.addLayout(action_row)
+        self._sync_action_buttons()
+
+    def focus_filter(self):
+        self.filter_edit.setFocus()
+        self.filter_edit.selectAll()
+
+    def set_dl_path(self, path: str):
+        self.dl_path = path
+        self._clear_palette_caches()
+        pics_path = os.path.join(path, "PICS") if path else path
+        default = pics_path if os.path.isdir(pics_path) else path
+        self.folder_edit.setText(default)
+        self._refresh_list(default)
+
+    def _browse_folder(self):
+        path = QFileDialog.getExistingDirectory(self, "Select PIC Folder", self.folder_edit.text() or self.dl_path or "")
+        if path:
+            self.folder_edit.setText(path)
+            self._clear_palette_caches()
+            self._refresh_list(path)
+
+    def _browse_pal(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open Palette Source",
+            self.dl_path or "",
+            "PIC Files (*.PIC *.pic);;All Files (*)",
+        )
+        if path:
+            self.pal_edit.setText(path)
+            self._palette_override_changed()
+
+    def _palette_override_changed(self):
+        current_path = self._selected_file
+        self._clear_palette_caches()
+        folder = self.folder_edit.text().strip()
+        self._refresh_list(folder)
+        if current_path:
+            self.open_file(current_path)
+
+    def _clear_palette_caches(self):
+        self._palette_data_cache.clear()
+        self._folder_pic_index.clear()
+        self._resolved_palette_cache.clear()
+        self._thumb_cache.clear()
+
+    def _normalized_pic_name(self, path_or_name: str) -> str:
+        stem = os.path.splitext(os.path.basename(path_or_name))[0].upper()
+        stem = re.sub(r"[^A-Z0-9]", "", stem)
+        changed = True
+        while changed:
+            changed = False
+            for suffix in ("SMALL", "STAT", "SHORT", "ICON", "PALT", "BACK", "SCRN", "LIT"):
+                if stem.endswith(suffix) and len(stem) > len(suffix):
+                    stem = stem[:-len(suffix)]
+                    changed = True
+        stem = re.sub(r"\d+$", "", stem)
+        return stem
+
+    def _palette_candidates(self, selected_file: str) -> list[str]:
+        folder = os.path.dirname(selected_file)
+        stem = os.path.splitext(os.path.basename(selected_file))[0].upper()
+        base = self._normalized_pic_name(selected_file)
+        candidates = []
+
+        def add(name: str):
+            path = os.path.join(folder, name)
+            if path not in candidates and os.path.isfile(path):
+                candidates.append(path)
+
+        if stem.endswith("SMALL"):
+            add(stem[:-5] + "SHORT.PIC")
+        if stem.endswith("STAT"):
+            add(stem[:-4] + "SHORT.PIC")
+        if stem.endswith("ICON"):
+            add(base + "PALT.PIC")
+            add(base + "GEN.PIC")
+        if stem.startswith("MAP"):
+            add("MAPICONS.PIC")
+            add("MAPICON2.PIC")
+        if stem.startswith("ALC"):
+            add("ALCSCRN0.PIC")
+            add("ALCSCRN1.PIC")
+            add("BKGDALCM.PIC")
+            add("ALCCART9.PIC")
+            add("ALCEM2.PIC")
+        if stem.startswith("ARMBRS") or stem.startswith("ARMBRSH") or stem.startswith("ARMSBACK"):
+            add("ARMBACK.PIC")
+        if stem.startswith("BUTTON"):
+            add("COMMON.PIC")
+        if stem.startswith("CHAR"):
+            add("CHARPALT.PIC")
+        return candidates
+
+    def _load_palette_only(self, path: str):
+        cached = self._palette_data_cache.get(path)
+        if cached is not None:
+            return list(cached) if cached else None
+        from darklands.format_pic import Pic
+
+        try:
+            pal_pic = Pic(path)
+            pal_pic.read_file(path, palOnly=True)
+            palette = list(pal_pic.pal) if pal_pic.pal else None
+        except Exception:
+            palette = None
+        self._palette_data_cache[path] = list(palette) if palette else None
+        return list(palette) if palette else None
+
+    def _folder_index(self, folder: str):
+        cached = self._folder_pic_index.get(folder)
+        if cached is not None:
+            return cached
+        donors = []
+        try:
+            for name in os.listdir(folder):
+                if name.upper().endswith(".PIC"):
+                    donors.append(
+                        {
+                            "name": name,
+                            "path": os.path.join(folder, name),
+                            "norm": self._normalized_pic_name(name),
+                        }
+                    )
+        except OSError:
+            donors = []
+        self._folder_pic_index[folder] = donors
+        return donors
+
+    def _resolve_palette(self, selected_file: str, pic):
+        from darklands.format_pic import default_pal
+
+        override = self.pal_edit.text().strip()
+        selected_stem = os.path.splitext(os.path.basename(selected_file))[0].upper()
+        cache_key = (selected_file, override)
+        cached = self._resolved_palette_cache.get(cache_key)
+        if cached is not None:
+            palette, source = cached
+            return list(palette), source
+        if override and os.path.isfile(override):
+            palette = self._load_palette_only(override)
+            if palette:
+                result = (list(palette), f"Manual override: {os.path.basename(override)}")
+                self._resolved_palette_cache[cache_key] = (list(result[0]), result[1])
+                return list(result[0]), result[1]
+        if pic.pal:
+            result = (list(pic.pal), "Embedded palette")
+            self._resolved_palette_cache[cache_key] = (list(result[0]), result[1])
+            return list(result[0]), result[1]
+        for candidate in self._palette_candidates(selected_file):
+            palette = self._load_palette_only(candidate)
+            if palette:
+                result = (list(palette), f"Auto palette: {os.path.basename(candidate)}")
+                self._resolved_palette_cache[cache_key] = (list(result[0]), result[1])
+                return list(result[0]), result[1]
+
+        folder = os.path.dirname(selected_file)
+        selected_norm = self._normalized_pic_name(selected_file)
+        donors = []
+        for donor in self._folder_index(folder):
+            donor_norm = donor["norm"]
+            score = 0
+            if donor_norm == selected_norm:
+                score += 100
+            if selected_stem.startswith(donor_norm[:max(1, min(4, len(donor_norm)))]) or donor_norm.startswith(selected_stem[:max(1, min(4, len(selected_stem)))]):
+                score += 35
+            score += len(os.path.commonprefix([donor_norm, selected_norm])) * 5
+            if selected_norm and donor_norm.startswith(selected_norm[:max(1, min(4, len(selected_norm)))]):
+                score += 15
+            donors.append({"score": score, "donor": donor})
+        donors.sort(key=lambda entry: (entry["score"], len(entry["donor"]["norm"]), entry["donor"]["name"]), reverse=True)
+        for ranked in donors:
+            if ranked["score"] < 15:
+                break
+            donor = ranked["donor"]
+            palette = self._load_palette_only(donor["path"])
+            if palette:
+                result = (list(palette), f"Auto palette: {os.path.basename(donor['path'])}")
+                self._resolved_palette_cache[cache_key] = (list(result[0]), result[1])
+                return list(result[0]), result[1]
+        for common in ("COMMON.PIC", "CHARGEN.PIC", "CHARPALT.PIC", "LOADSCRN.PIC"):
+            common_path = os.path.join(folder, common)
+            if os.path.isfile(common_path):
+                palette = self._load_palette_only(common_path)
+                if palette:
+                    result = (list(palette), f"Fallback palette: {common}")
+                    self._resolved_palette_cache[cache_key] = (list(result[0]), result[1])
+                    return list(result[0]), result[1]
+        if self._last_palette:
+            result = (list(self._last_palette), f"Previous palette: {self._last_palette_source}")
+            self._resolved_palette_cache[cache_key] = (list(result[0]), result[1])
+            return list(result[0]), result[1]
+        result = (list(default_pal), "Fallback: default VGA palette")
+        self._resolved_palette_cache[cache_key] = (list(result[0]), result[1])
+        return list(result[0]), result[1]
+
+    def _thumbnail_for_file(self, path: str) -> QIcon:
+        cache_key = (path, self.pal_edit.text().strip())
+        cached = self._thumb_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        try:
+            from darklands.format_pic import Pic
+
+            pic = Pic(path)
+            palette, _ = self._resolve_palette(path, pic)
+            pic.pal = list(palette)
+            pixmap = self._pixmap_for_pic(pic)
+        except Exception:
+            pixmap = QPixmap(self._THUMB_ICON)
+            pixmap.fill(QColor("#281414"))
+            painter = QPainter(pixmap)
+            painter.setPen(QColor("#d77"))
+            painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "ERR")
+            painter.end()
+        thumb = QPixmap(self._THUMB_ICON)
+        thumb.fill(QColor("#161616"))
+        painter = QPainter(thumb)
+        scaled = pixmap.scaled(self._THUMB_ICON, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.FastTransformation)
+        painter.drawPixmap((thumb.width() - scaled.width()) // 2, (thumb.height() - scaled.height()) // 2, scaled)
+        painter.end()
+        icon = QIcon(thumb)
+        self._thumb_cache[cache_key] = icon
+        return icon
+
+    def _refresh_list(self, folder: str):
+        self.file_list.clear()
+        self._selected_file = None
+        self._current_pic = None
+        self._current_pixmap = None
+        self._display_name = ""
+        self._sync_action_buttons()
+        if not folder or not os.path.isdir(folder):
+            self._info_label.setText("Set a valid Darklands folder to browse PIC files.")
+            self._image_label.setText("Select a PIC thumbnail.")
+            self._image_label.setPixmap(QPixmap())
+            return
+        files = sorted(name for name in os.listdir(folder) if name.upper().endswith(".PIC"))
+        for fname in files:
+            full = os.path.join(folder, fname)
+            item = QListWidgetItem(self._thumbnail_for_file(full), fname)
+            item.setData(Qt.ItemDataRole.UserRole, full)
+            item.setToolTip(full)
+            self.file_list.addItem(item)
+        self._apply_filter()
+        if self.file_list.count():
+            self.file_list.setCurrentRow(0)
+        else:
+            self._info_label.setText("No PIC files found in the selected folder.")
+
+    def _apply_filter(self):
+        needle = self.filter_edit.text().strip().lower()
+        first = -1
+        for row in range(self.file_list.count()):
+            item = self.file_list.item(row)
+            visible = not needle or needle in item.text().lower()
+            item.setHidden(not visible)
+            if visible and first < 0:
+                first = row
+        current = self.file_list.currentRow()
+        if current >= 0 and self.file_list.item(current).isHidden() and first >= 0:
+            self.file_list.setCurrentRow(first)
+
+    def open_file(self, fpath: str):
+        if not fpath or not os.path.isfile(fpath):
+            return False
+        folder = os.path.dirname(fpath)
+        self.folder_edit.setText(folder)
+        self._refresh_list(folder)
+        for row in range(self.file_list.count()):
+            item = self.file_list.item(row)
+            if item and item.data(Qt.ItemDataRole.UserRole) == fpath:
+                self.file_list.setCurrentRow(row)
+                return True
+        return False
+
+    def open_catalog_entry(self, cat_path: str, entry_name: str, data: bytes | None = None):
+        if not entry_name.upper().endswith(".PIC") or data is None:
+            return False
+        self.folder_edit.setText(os.path.dirname(cat_path))
+        self.file_list.clearSelection()
+        self.pal_edit.clear()
+        self._load_pic_bytes(data, f"{os.path.basename(cat_path)} / {entry_name}")
+        return True
+
+    def _on_item_changed(self, current: QListWidgetItem | None, _previous: QListWidgetItem | None):
+        if current is None or current.isHidden():
+            return
+        path = current.data(Qt.ItemDataRole.UserRole)
+        if path:
+            self._load_pic_file(path)
+
+    def _load_pic_file(self, path: str):
+        try:
+            from darklands.format_pic import Pic, default_pal
+
+            pic = Pic(path)
+            resolved_pal, resolved_src = self._resolve_palette(path, pic)
+            pic.pal = list(resolved_pal or default_pal)
+            pixmap = self._pixmap_for_pic(pic)
+            self._set_current_pic(pic, pixmap, os.path.basename(path), path, resolved_src)
+        except Exception:
+            self._image_label.setText(f"Error:\n{traceback.format_exc()}")
+
+    def _load_pic_bytes(self, data: bytes, display_name: str):
+        try:
+            from darklands.format_pic import Pic, default_pal
+
+            pic = Pic()
+            pos = 0
+            data_len = len(data)
+            while pos + 4 <= data_len:
+                tag = int.from_bytes(data[pos:pos + 2], "little")
+                seg_len = int.from_bytes(data[pos + 2:pos + 4], "little")
+                pos += 4
+                segment = data[pos:pos + seg_len]
+                if len(segment) < seg_len:
+                    break
+                if tag == 0x304D:
+                    pic.pal_from_data(segment)
+                elif tag == 0x3058:
+                    pic.pic_from_data(segment)
+                pos += seg_len
+            pic.pal = list(pic.pal) if pic.pal else list(default_pal)
+            pixmap = self._pixmap_for_pic(pic)
+            self._set_current_pic(pic, pixmap, display_name, None, "Embedded / archive palette")
+        except Exception:
+            self._image_label.setText(f"Error:\n{traceback.format_exc()}")
+
+    def _set_current_pic(self, pic, pixmap: QPixmap, display_name: str, selected_file: str | None, palette_source: str):
+        self._current_pic = pic
+        self._current_pixmap = pixmap
+        self._display_name = display_name
+        self._selected_file = selected_file
+        self._last_palette = list(pic.pal) if pic.pal else None
+        self._last_palette_source = palette_source
+        self._palette_info.setText(f"Resolved palette: {palette_source}")
+        self._info_label.setText(
+            "\n".join(
+                [
+                    f"Name: {display_name}",
+                    f"Path: {selected_file or '(catalog entry / unsaved import)'}",
+                    f"Size: {pic.width} x {pic.height}",
+                    f"Rows: {len(pic.pic) if pic.pic else 0}",
+                ]
+            )
+        )
+        pal_pixmap = _render_palette_pixmap(pic.pal or [], cell=12)
+        self._palette_label.setPixmap(pal_pixmap)
+        self._palette_label.resize(pal_pixmap.size())
+        self._palette_label.setText("")
+        self._apply_zoom()
+        self._sync_action_buttons()
+
+    def _pixmap_for_pic(self, pic) -> QPixmap:
+        if pic.pic:
+            rgba, width, height = pic.render_rgba_bytes()
+            return _bytes_to_pixmap(rgba, width, height)
+        return QPixmap()
+
+    def _sync_action_buttons(self):
+        has_pic = self._current_pic is not None
+        self.import_btn.setEnabled(has_pic or bool(self._selected_file))
+        self.save_png_btn.setEnabled(self._current_pixmap is not None)
+        self.save_pic_btn.setEnabled(has_pic and bool(self._selected_file))
+        self.save_pic_as_btn.setEnabled(has_pic)
+
+    def _build_palette_image(self, palette):
+        from PIL import Image
+
+        palette_img = Image.new("P", (16, 16))
+        palette_bytes = []
+        for color in (palette or []):
+            if color is None:
+                palette_bytes.extend((0, 0, 0))
+            else:
+                palette_bytes.extend(color)
+        while len(palette_bytes) < 768:
+            palette_bytes.extend((0, 0, 0))
+        palette_img.putpalette(palette_bytes[:768])
+        return palette_img
+
+    def _import_png(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Import PNG into PIC", self.dl_path or "", "PNG Images (*.png);;All Files (*)")
+        if not path:
+            return
+        try:
+            from PIL import Image
+            from darklands.format_pic import Pic, default_pal
+
+            palette = list(self._current_pic.pal) if self._current_pic and self._current_pic.pal else list(default_pal)
+            palette_img = self._build_palette_image(palette)
+            source = Image.open(path).convert("RGBA")
+            rgb = Image.new("RGB", source.size, (0, 0, 0))
+            rgb.paste(source, mask=source.getchannel("A"))
+            quantized = rgb.quantize(palette=palette_img, dither=Image.Dither.NONE)
+            alpha = source.getchannel("A")
+            quantized_data = bytearray(quantized.tobytes())
+            for index, alpha_value in enumerate(alpha.getdata()):
+                if alpha_value < 128:
+                    quantized_data[index] = 0
+
+            width, height = quantized.size
+            rows = [list(quantized_data[row * width:(row + 1) * width]) for row in range(height)]
+            pic = Pic()
+            pic.width = width
+            pic.height = height
+            pic.pic = rows
+            pic.pal = palette
+            pixmap = self._pixmap_for_pic(pic)
+            label = f"{os.path.basename(path)} -> {os.path.basename(self._selected_file) if self._selected_file else 'PIC'}"
+            self._set_current_pic(pic, pixmap, label, self._selected_file, "Imported PNG with current palette")
+            QMessageBox.information(self, "PNG imported", "PNG imported into the current PIC working copy.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Import failed", str(exc))
+
+    def eventFilter(self, obj, event):
+        if obj is self._scroll.viewport() and event.type() == QEvent.Type.Wheel and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            if event.angleDelta().y() > 0:
+                self._zoom_in()
+            else:
+                self._zoom_out()
+            return True
+        return super().eventFilter(obj, event)
+
+    def _zoom_in(self):
+        steps = [z for z in self._ZOOM_STEPS if z > self._zoom + 1e-9]
+        if steps:
+            self._set_zoom(steps[0])
+
+    def _zoom_out(self):
+        steps = [z for z in self._ZOOM_STEPS if z < self._zoom - 1e-9]
+        if steps:
+            self._set_zoom(steps[-1])
+
+    def _zoom_reset(self):
+        self._set_zoom(1.0)
+
+    def _set_zoom(self, zoom: float):
+        self._zoom = zoom
+        self._zoom_label.setText(f"{int(round(zoom * 100))}%")
+        self._apply_zoom()
+
+    def _apply_zoom(self):
+        if self._current_pixmap is None:
+            return
+        pm = self._current_pixmap
+        if pm.isNull():
+            self._image_label.setPixmap(QPixmap())
+            self._image_label.setText("No image data in this PIC.")
+            return
+        if abs(self._zoom - 1.0) < 1e-9:
+            scaled = pm
+        else:
+            scaled = pm.scaled(max(1, int(pm.width() * self._zoom)), max(1, int(pm.height() * self._zoom)), Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation)
+        self._image_label.setPixmap(scaled)
+        self._image_label.resize(scaled.size())
+        self._image_label.setText("")
+
+    def _save_png(self):
+        if self._current_pixmap is None:
+            return
+        default_name = os.path.splitext(self._display_name or "image")[0] + ".png"
+        path, _ = QFileDialog.getSaveFileName(self, "Export PNG", default_name, "PNG Images (*.png);;All Files (*)")
+        if path:
+            self._current_pixmap.save(path)
+
+    def _save_pic(self):
+        if self._current_pic is None or not self._selected_file:
+            return
+        try:
+            target_path = self._selected_file
+            self._current_pic.write_file(target_path)
+            self._clear_palette_caches()
+            folder = self.folder_edit.text().strip()
+            if folder:
+                self._refresh_list(folder)
+                self.open_file(target_path)
+            QMessageBox.information(self, "Saved", f"Saved {os.path.basename(target_path)}")
+        except Exception as exc:
+            QMessageBox.critical(self, "Save error", str(exc))
+
+    def _save_pic_as(self):
+        if self._current_pic is None:
+            return
+        default_name = os.path.basename(self._selected_file) if self._selected_file else "converted.PIC"
+        path, _ = QFileDialog.getSaveFileName(self, "Save PIC As", default_name, "PIC Images (*.PIC);;All Files (*)")
+        if not path:
+            return
+        if not path.upper().endswith(".PIC"):
+            path += ".PIC"
+        try:
+            self._current_pic.write_file(path)
+            self._clear_palette_caches()
+            QMessageBox.information(self, "Saved", f"Saved {os.path.basename(path)}")
+        except Exception as exc:
+            QMessageBox.critical(self, "Save error", str(exc))
+
+
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------

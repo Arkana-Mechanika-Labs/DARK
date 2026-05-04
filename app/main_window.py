@@ -41,7 +41,7 @@ _TREE_STRUCTURE = [
         ("Descriptions (DSC)",      "data_editors",    "DescriptionsConverter"),
     ]),
     ("Images", [
-        ("PIC Images",              "image_converters","PicConverter"),
+        ("PIC Images",              "image_converters","PicGalleryConverter"),
         ("IMC Sprites",             "image_converters","ImcConverter"),
     ]),
     ("Fonts", [
@@ -52,10 +52,11 @@ _TREE_STRUCTURE = [
     ]),
     ("Research", [
         ("DGT Audio",               "audio_converters",    "DgtAudioConverter"),
-            ("IMG Banks (Research)",    "research_converters", "ImgResearchConverter"),
-            ("PAN Sequences",          "research_converters", "PanResearchConverter"),
+        ("MT-32 Playback",          "audio_converters",    "Mt32PlaybackConverter"),
+        ("IMG Banks",               "research_converters", "ImgResearchConverter"),
+        ("PAN Sequences",           "research_converters", "PanResearchConverter"),
         ("Research Files",          "research_converters", "ResearchFilesConverter"),
-        ("DRLE Decompressor",       "image_converters","DrleConverter"),
+        ("DRLE Decompressor",       "image_converters",    "DrleConverter"),
     ]),
 ]
 
