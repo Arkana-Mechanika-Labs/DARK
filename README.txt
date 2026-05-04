@@ -1,5 +1,5 @@
 DARK: Darklands Authoring & Resource Kit
-Version 0.9b2
+Version 0.91b
 2026
 By Arkana Mechanika Labs
 
@@ -13,6 +13,7 @@ Current scope includes:
 - world data (cities, locations, descriptions, items, saints, formulae, enemies)
 - dialog cards and message archives
 - PIC and IMC graphics workflows
+- PAN presentation sequence playback
 - font editing
 - CAT archive browsing and rebuilding
 - validation, coverage, and research-oriented tools
