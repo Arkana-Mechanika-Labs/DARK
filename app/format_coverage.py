@@ -261,16 +261,6 @@ _RULES: tuple[CoverageRule, ...] = (
         notes="COMMONSP.IMG is now displayable in DARK; other IMG banks still vary in decode maturity.",
     ),
     CoverageRule(
-        key="rsound_mt32",
-        patterns=("RSOUND.DLC", "RSOUND.DLB"),
-        status="supported",
-        category="audio",
-        family="Roland / MT-32 module assets",
-        editor_title="MT-32 Playback",
-        kb_doc=None,
-        notes="Research-backed MT-32 playback launcher for the selected Roland module path.",
-    ),
-    CoverageRule(
         key="pan_files",
         patterns=("*.PAN",),
         status="supported",

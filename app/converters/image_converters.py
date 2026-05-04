@@ -38,6 +38,10 @@ class PicGalleryConverter(QWidget):
         self._folder_pic_index = {}
         self._resolved_palette_cache = {}
         self._thumb_cache = {}
+        self._thumb_queue: list[tuple[QListWidgetItem, str]] = []
+        self._thumb_timer = QTimer(self)
+        self._thumb_timer.setInterval(0)
+        self._thumb_timer.timeout.connect(self._process_thumb_queue)
         self._build_ui()
 
     def _build_ui(self):
@@ -227,6 +231,8 @@ class PicGalleryConverter(QWidget):
         self._folder_pic_index.clear()
         self._resolved_palette_cache.clear()
         self._thumb_cache.clear()
+        self._thumb_queue.clear()
+        self._thumb_timer.stop()
 
     def _normalized_pic_name(self, path_or_name: str) -> str:
         stem = os.path.splitext(os.path.basename(path_or_name))[0].upper()
@@ -407,12 +413,40 @@ class PicGalleryConverter(QWidget):
         self._thumb_cache[cache_key] = icon
         return icon
 
+    def _placeholder_icon(self) -> QIcon:
+        pixmap = QPixmap(self._THUMB_ICON)
+        pixmap.fill(QColor("#161616"))
+        painter = QPainter(pixmap)
+        painter.setPen(QColor("#666"))
+        painter.drawRect(0, 0, pixmap.width() - 1, pixmap.height() - 1)
+        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "PIC")
+        painter.end()
+        return QIcon(pixmap)
+
+    def _start_thumb_queue(self):
+        if self._thumb_queue and not self._thumb_timer.isActive():
+            self._thumb_timer.start()
+
+    def _process_thumb_queue(self):
+        if not self._thumb_queue:
+            self._thumb_timer.stop()
+            return
+        for _ in range(min(12, len(self._thumb_queue))):
+            item, path = self._thumb_queue.pop(0)
+            if item.listWidget() is None:
+                continue
+            item.setIcon(self._thumbnail_for_file(path))
+        if not self._thumb_queue:
+            self._thumb_timer.stop()
+
     def _refresh_list(self, folder: str):
         self.file_list.clear()
         self._selected_file = None
         self._current_pic = None
         self._current_pixmap = None
         self._display_name = ""
+        self._thumb_queue.clear()
+        self._thumb_timer.stop()
         self._sync_action_buttons()
         if not folder or not os.path.isdir(folder):
             self._info_label.setText("Set a valid Darklands folder to browse PIC files.")
@@ -420,13 +454,16 @@ class PicGalleryConverter(QWidget):
             self._image_label.setPixmap(QPixmap())
             return
         files = sorted(name for name in os.listdir(folder) if name.upper().endswith(".PIC"))
+        placeholder = self._placeholder_icon()
         for fname in files:
             full = os.path.join(folder, fname)
-            item = QListWidgetItem(self._thumbnail_for_file(full), fname)
+            item = QListWidgetItem(placeholder, fname)
             item.setData(Qt.ItemDataRole.UserRole, full)
             item.setToolTip(full)
             self.file_list.addItem(item)
+            self._thumb_queue.append((item, full))
         self._apply_filter()
+        self._start_thumb_queue()
         if self.file_list.count():
             self.file_list.setCurrentRow(0)
         else:

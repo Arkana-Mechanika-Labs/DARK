@@ -52,7 +52,6 @@ _TREE_STRUCTURE = [
     ]),
     ("Research", [
         ("DGT Audio",               "audio_converters",    "DgtAudioConverter"),
-        ("MT-32 Playback",          "audio_converters",    "Mt32PlaybackConverter"),
         ("IMG Banks",               "research_converters", "ImgResearchConverter"),
         ("PAN Sequences",           "research_converters", "PanResearchConverter"),
         ("Research Files",          "research_converters", "ResearchFilesConverter"),
