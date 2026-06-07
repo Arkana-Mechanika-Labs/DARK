@@ -43,6 +43,7 @@ a = Analysis(
         "app.branding",
         "app.file_ops",
         "app.format_coverage",
+        "app.saint_cluebook",
         "app.settings",
         "app.theme",
         "app.validation",

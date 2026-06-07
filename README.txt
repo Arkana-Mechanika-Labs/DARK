@@ -1,5 +1,5 @@
 DARK: Darklands Authoring & Resource Kit
-Version 0.91b
+Version 0.91b1
 2026
 By Arkana Mechanika Labs
 
@@ -11,6 +11,7 @@ Darklands data files.
 Current scope includes:
 - save files
 - world data (cities, locations, descriptions, items, saints, formulae, enemies)
+- saint cluebook reference notes and save-game saint assignment editing
 - dialog cards and message archives
 - PIC and IMC graphics workflows
 - PAN presentation sequence playback

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.91b1
+
+- Added saint cluebook reference data to the saints editor, including virtue, DF range, base success chance, and shared cluebook notes.
+- Added direct saint add/remove editing for party characters in the save-game editor.
+- Fixed save writing so saint and formula knowledge bitmasks persist correctly after edits.
+
 ## 0.91b
 
 - Reworked the PIC viewer into a thumbnail gallery with labeled file tiles, 300% default preview zoom, PNG export, and PNG-to-PIC import/save support.

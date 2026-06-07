@@ -11,6 +11,7 @@ DARK is built to make Darklands format work practical in one place instead of sc
 Current scope includes:
 - save files
 - world data: cities, locations, descriptions, items, saints, formulae, enemies
+- saint cluebook reference notes inside the saints editor and save-game saint assignment editing
 - dialog cards and `MSGFILES`
 - `PIC` images and `IMC` tactical sprites
 - `PAN` presentation sequence playback with embedded VGA palettes, frame stepping, contact sheets, and frame export
@@ -34,7 +35,7 @@ Current scope includes:
 
 ## Status
 
-This project is currently **0.91b**.
+This project is currently **0.91b1**.
 
 Large parts of the app are already useful, but some areas are still experimental or under active research. In particular, some file families are supported only partially, and research-oriented placeholders still exist for formats that are not yet fully integrated.
 

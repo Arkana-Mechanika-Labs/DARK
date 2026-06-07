@@ -3,6 +3,7 @@ Save Game Editor — browse, view, and edit Darklands .SAV files.
 """
 import os
 import traceback
+import html
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
@@ -13,6 +14,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QFont, QPixmap, QPen, QPainter, QColor
 from PySide6.QtCore import Qt
+
+from app.saint_cluebook import saint_clue_entry
 
 
 # ── label maps ────────────────────────────────────────────────────────────────
@@ -73,6 +76,7 @@ class SaveGameConverter(QWidget):
         self._locations: list | None = None
         self._raw:      bytes | None = None
         self._item_names: list[str]  = []   # indexed by item id-1
+        self._saint_names: list[str] = []
         self._world_locations: list[dict] = []
         self._quest_map_cache: QPixmap | None = None
         self._loading  = False
@@ -376,10 +380,12 @@ class SaveGameConverter(QWidget):
     def _try_load_item_names(self):
         try:
             from darklands.reader_lst import readData
-            items, _, _ = readData(self.dl_path)
+            items, saints, _ = readData(self.dl_path)
             self._item_names = [it.get('name', '') for it in items]
+            self._saint_names = [saint.get('name', '') for saint in saints]
         except Exception:
             self._item_names = []
+            self._saint_names = []
         try:
             from darklands.reader_loc import readData as read_loc
             self._world_locations = read_loc(self.dl_path)
@@ -763,10 +769,44 @@ class SaveGameConverter(QWidget):
         n_formulae = sum(bin(b).count('1') for b in formula_bits)
 
         know_box = QGroupBox("Knowledge")
-        kf = QFormLayout(know_box)
-        kf.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        kf.addRow("Saints known:",   QLabel(str(n_saints)))
-        kf.addRow("Formulae known:", QLabel(str(n_formulae)))
+        kf = QVBoxLayout(know_box)
+        counts = QFormLayout()
+        counts.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        self._cf['saints_known_count'] = QLabel(str(n_saints))
+        self._cf['formulae_known_count'] = QLabel(str(n_formulae))
+        counts.addRow("Saints known:", self._cf['saints_known_count'])
+        counts.addRow("Formulae known:", self._cf['formulae_known_count'])
+        kf.addLayout(counts)
+
+        saints_split = QSplitter(Qt.Orientation.Horizontal)
+        self._saint_checklist = QListWidget()
+        self._saint_checklist.setMinimumWidth(230)
+        self._saint_checklist.itemChanged.connect(
+            lambda item, ci=char_idx: self._char_saint_toggled(item, ci)
+        )
+        self._saint_checklist.currentRowChanged.connect(self._on_known_saint_selected)
+        for idx, saint_name in enumerate(self._saint_names):
+            item = QListWidgetItem(saint_name)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(
+                Qt.CheckState.Checked
+                if self._bit_is_set(saint_bits, idx)
+                else Qt.CheckState.Unchecked
+            )
+            self._saint_checklist.addItem(item)
+        saints_split.addWidget(self._saint_checklist)
+
+        self._saint_known_detail = QTextBrowser()
+        self._saint_known_detail.setMinimumHeight(170)
+        saints_split.addWidget(self._saint_known_detail)
+        saints_split.setStretchFactor(0, 0)
+        saints_split.setStretchFactor(1, 1)
+        saints_split.setSizes([260, 380])
+        kf.addWidget(saints_split)
+
+        if self._saint_names:
+            self._saint_checklist.setCurrentRow(0)
+            self._saint_known_detail.setHtml(self._saint_clue_html(0))
         self._char_form_lay.addWidget(know_box)
 
         # ── Inventory ─────────────────────────────────────────────────────
@@ -796,6 +836,42 @@ class SaveGameConverter(QWidget):
         if item_id and 1 <= item_id <= len(self._item_names):
             return self._item_names[item_id - 1]
         return f"(#{item_id})" if item_id else ""
+
+    def _saint_name(self, saint_idx: int) -> str:
+        if 0 <= saint_idx < len(self._saint_names):
+            return self._saint_names[saint_idx]
+        return f"Saint #{saint_idx + 1}"
+
+    def _bit_is_set(self, data: bytes | bytearray, bit_index: int) -> bool:
+        byte_index = bit_index // 8
+        mask = 1 << (bit_index % 8)
+        if byte_index >= len(data):
+            return False
+        return bool(data[byte_index] & mask)
+
+    def _set_bit(self, data: bytes | bytearray, bit_index: int, enabled: bool) -> bytes:
+        raw = bytearray(data)
+        byte_index = bit_index // 8
+        mask = 1 << (bit_index % 8)
+        while byte_index >= len(raw):
+            raw.append(0)
+        if enabled:
+            raw[byte_index] |= mask
+        else:
+            raw[byte_index] &= (~mask) & 0xFF
+        return bytes(raw)
+
+    def _saint_clue_html(self, saint_idx: int) -> str:
+        clue = saint_clue_entry(self._saint_name(saint_idx))
+        if not clue:
+            return f"<p><b>{html.escape(self._saint_name(saint_idx))}</b></p><p style='color:#888'>No cluebook entry matched this saint.</p>"
+        return (
+            f"<h3 style='margin-bottom:6px'>{html.escape(clue['name'])}</h3>"
+            f"<p><b>Requirement:</b> Virtue {clue['virtue_required']}</p>"
+            f"<p><b>DF Range:</b> {clue['df_min']}-{clue['df_max']}</p>"
+            f"<p><b>Base Success:</b> {clue['base_success_percent']}%</p>"
+            f"<p><b>Effects:</b> {html.escape(clue['effects'])}</p>"
+        )
 
     # ── data mutation ─────────────────────────────────────────────────────────
 
@@ -829,6 +905,27 @@ class SaveGameConverter(QWidget):
             return
         self._party['characters'][char_idx]['skills'][key] = value
         self._mark_dirty()
+
+    def _char_saint_toggled(self, item: QListWidgetItem, char_idx: int):
+        if self._loading or self._party is None:
+            return
+        bit_index = self._saint_checklist.row(item)
+        char = self._party['characters'][char_idx]
+        char['saint_bits'] = self._set_bit(
+            char.get('saint_bits', b'\x00' * 20),
+            bit_index,
+            item.checkState() == Qt.CheckState.Checked,
+        )
+        if 'saints_known_count' in self._cf:
+            saint_bits = char.get('saint_bits', b'\x00' * 20)
+            count = sum(bin(b).count('1') for b in saint_bits)
+            self._cf['saints_known_count'].setText(str(count))
+        self._mark_dirty()
+
+    def _on_known_saint_selected(self, row: int):
+        if row < 0 or row >= len(self._saint_names):
+            return
+        self._saint_known_detail.setHtml(self._saint_clue_html(row))
 
     # ── collect & save ────────────────────────────────────────────────────────
 

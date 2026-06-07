@@ -1,0 +1,313 @@
+A
+Adrian [43v, 15-99df, 15%]: End +(7-15), Chr +(6-11), each weapon skill +(15-29).
+
+Agatha [24v, 20-94df, 25%]: If praying for a man, End +(6-11). If praying for a woman, End +(12-23), Chr +(6-11).
+
+Agnes [19v, 10-84df, 25%]: Party must include at least one female for this prayer to succeed (even if none are involved in the prayer). Chr +(10-29), Local Rep at nearest city +(10-20).
+
+Aidan [23v, 15-89df, 25%]: Woodwise +(25-29). In interactions with animals, this saint may prevent attacks.
+
+Albert the Great [39v, 25-64df, 60%]: Int +(8-15), Per +(6-11), Alch +(30-44), SpkL +(15-29), R&W +(15-29).
+
+Alcuin [39v, 15-54df, 60%]: Int +(6-11), SpkL +(20-39), R&W +(20-39). Prayers in encounters with government and/or nobles can improve chances of success.
+
+Alexis [28v, 10-69df, 40%]: Chr +(6-11), Local Rep at nearest city +(10-20). If party has less than 12pf, it receives 36-108pf.
+
+Andrew [14v, 5-84df, 20%]: End +(6-11), Chr +(8-15).
+
+Andrew the Tribune [37v, 20-99df, 15%]: WEdg +(15-29), WImp +(15-29), WPol +(15-29}, WThr +(15-29}, WBow +(15-29)
+
+Anthony [37v, 20-99df, 15%]: End +(4-9), Str +(5-10), Chr +(1-10), SpkL +(10-19), R&W +(20-39). The saint can sometimes weaken demons, but only during interactions before battle.
+
+Anthony of Padua [59v, 10-44df, 65%]: Str +(4-7), Per +(6-11), Chr +(15-24), WImp +(10-19), SpkC +(20-29), SpkL +(10-19).
+
+Arnulf [65v, 15-49df, 65%]: Str +(4-7), Per +(6-11), Int +(4-7), each weapon skill +(10-19), SpkL +(6-11), R&W +(8-15), StrW +(6-11), Ride +(8-15).
+
+Apollinarius [78v, 20-49df, 70%]: Str +(2-4), End +(8-15).
+
+B
+Barbara [32v, 20-79df, 40%]: Artf +(15-29), WMsD +(20-39).
+
+Bathildis [21v, 15-94df, 20%]: Int +(4-8), Per +(3-6). This saint may help you escape from prison, but frequently it costs a large amount of money.
+
+Boniface [25v, 10-99df, 10%]: Chr +(8-15), SpkC +(8-15), each weapon skill +(10-19). During interaction, this saint may be able to purify certain evil sites.
+
+C
+Catherine [46v, 30-99df, 30%]: Chr +(8-15), Int +(8-15), SpkC +(40-99).
+
+Catherine of Siena [33v, 10-84df, 25%]: Chr +(1-15), Per +(1-15), SpkC +(10-29). In interactions she may provide insights into the attitudes or feelings of others.
+
+Cecilia [41v, 25-74df, 50%]: Chr +(3-10), if person praying has a musical instrument +(20-60) to local reputation. She can save a party from suffocation, or allow them to survive without breathing. This is useful in a few special situations.
+
+Ceolwulf [23v, 15-89df, 25%]: Per +(3-5), Str +(6-11), Int +(3-5), SpkL +6-11), each weapon skill +(6-11).
+
+Charity [40v, 10-59df, 50%]: WFll +(15-29), Chr +(6-11), Local Rep at nearest city +(10-20), and armor thickness against flame weapons increased by 10.
+
+Christina, Astonish. [54v, 50-99df, 50%]: Agl +(8-15), Chr +(1-10). In interactions she can sometimes levitate the party over obstacles or away from trouble, but she tends to send the party to deserted or relatively empty places.
+
+Christopher [31v, 15-89df, 25%]: WBow +(6-11), StrW +(10-19), WdWs +(20-39), Ride +(25-74).
+
+Clare [33v, 30-99df, 20%]: heals Str 95%, heals End 95%.
+
+Clotilda [22v, 10-79df, 30%]: heals End 25%, heals Str 50%, Heal (skill) +(10-19), Chr +(6-11).
+
+Colman of Cloyne [34v, 15-59df, 55%]: Chr +(8-15), SpkC +(30-89), SpkL +(6-11), R&W +(10-19).
+
+Columba [36v, 20-59df, 60%]: End +(8-15), Str +(6-13), Chr +(4-7), Per -(5-9), weapon currently in use skill +(10-19). Note that St. Columba temporarily reduces perception.
+
+Cosmas [15v, 15-84df, 30%]: Heals End 10%, heals Str 10%, Heal (skill) +(40-79), Per +(4-7), and automatically gives knowledge of St. Damian.
+
+Crispin [28v, 25-89df, 35%]: Improves armour quality on both limbs and vitals by 10.
+
+Cyprian [54v, 25-74df, 50%]: Int +(6-12), Alch +(6-12). The saint can sometimes weaken demons, but only during interactions before battle.
+
+D
+Damian [30v, 25-84df, 40%]: heals End 100%, heals Str 30%, and automatically gives knowledge of St. Cosmas.
+
+David [30v, 10-84df, 25%]: Int +(4-7), Chr +(1-6), Per +(6-11), Ride +(6-11), weapon currently in use skill +(8-15).
+
+Denis [38v, 25-99df, 20%]: heals Str 100%, Chr +(15-44), SpkC +(25-49).
+
+Derfel Gadarn [57v, 20-74df, 45%]: Heals End 70%, Str +(5-14), weapon currently in use skill +(20-59).
+
+Devota [26v, 20-99df, 10%]: heals End 100%, heals Str 20%, Chr +(15-29).
+
+Dismas [53v, 30-84df, 45%]: WdWs +(10-19), StrW +(20-39), Art +(20-39). Agl +(10-19), Stlh +(10-19). He may help a party escape from prison as an interaction option.
+
+Dominic [29v, 20-99df, 15%]: Int +(10-19), SpkC +(10-19), SpkL +(10-19), R&W +(20-39). He can help the party deal with some travelling clergy (friars, hermits, etc.).
+
+Dorothy of Montau [52v, 20-69df, 50%]: Chr +(10-19), Per +(6-11), Heal (skil1) +(10-19). If the person prayed for lacks an edged weapon, he or she receives a longsword.
+
+Drogo [59v, 15-54df, 60%]: Per +(6-11), Heal (skil1) +(10-19), WdWs +(20-39), and helps prevent ambushes for seven days.
+
+Dunstan [45v, 30-69df, 60%]: Per +(6-11), Artf+(25-74), StrW +(6-11), Alch +(5-14), weapon currently in use skil1 +(6-11), armour thickness improves one against flame weapons.
+
+Dymphna [21v, 20-99df, 10%]: Heals End 30%, Agl +(4-7), Heal (skil1) +(10-19), Stlh +(15-29). The saint can sometimes weaken demons, but only during interactions before battle.
+
+E
+Edward, Confessor [5v, 20-99df, 10%]: End +(4-7), Int +(6-11), Per +(8-15), each weapon skill +(6-11), Ride +(8-15). Each character in the party whose virtue is below 20 has their virtue increased to 20. In interactions with nobility, this saint is sometimes helpful.
+
+Eligius [29v, 10-84df, 25%]: Artf +(25-74), Alch +(8-15). (There are no weapon or armour improvements.)
+
+Emydius [31v, 20-64df, 55%]: SpkC +(20-39), Chr +(15-29). During interaction, this saint may be able to purify certain evil sites.
+
+Engelbert [40v, 15-84df, 30%]: Chr +(5-9), Ride +(10-19), SpkC +(6-11), WdWs +(10-19).
+
+Erasmus [32v, 15-74df, 40%]: Agl +(6-11), Per +(6-11), and armour becomes impenetrable to flame weapons.
+
+Eric [42v, 20-94df, 25%]: Str +(8-15), Chr +(4-7), SpkC +(6- 11), Ride +(6-11), weapon currently in use skill +(15-24).
+
+Eustace [41v, 30-99df, 30%]: WEdg +(6-11), WThr +(6-11), WBow +(6-11), Ride +(10-19), WdWs +(40-69).
+
+F
+Felix of Nola [37v, 25-94df, 30%]: Agl +(8-15), Stlh +(40-99), WdWs +(10-19). During interactions, this saint may help an imprisoned party escape.
+
+Finbar [17v, 30-84df, 45%]: Chr +(8-15), Per +(6-11), SpkL +(10-19).
+
+Finnian [24v, 40-99df, 35%]: Agl +(8-15), Chr +(6-11), SpkC +(6-11), R&W +(6-11), StrW +(4-7). In addition, the party can cross impassable water for 24 hours.
+
+Florian [17v, 25-89df, 35%]: Riding +(6-11), weapon currently in use skill +(6-11). If the nearest city is Austrian (Wien, Graz, Passau, Salzburg, Linz or Steyr) Local Rep +(15-25). In addition, the party can cross impassable water for 24 hours.
+
+Francis [10v, 10-99df, 1%]: heals End 30%, heals Str 10%, End +(6-11), Chr +(15-29), Per +(6-11). SpkC +(4-7), Heal (skill) +(10-19), Artf +(12-23), WdWs +(4-7).
+
+G
+Gabriel [56v, 30-84df, 45%]: Int +(10-29), Per +(10-29). This archangel and saint can sometimes clear the way of obstacles.
+
+Genevieve [73v, 40-64df, 75%]: heals End 30%, heals Str 20%, and helps prevent ambushes for seven days.
+
+George [23v, 40-99df, 10%]: Str +(10-14), Agl +(5-9), each weapon skill +(25-49), Ride +(25-49).
+
+Gerlac [34v, 40-89df, 50%]: heals End 30%, heals Str 20%, Heal (skill) +(20-39), weapon currently in use skill +(15-24).
+
+Gertrude o'Nivelles [26v, 35-99df, 30%]: Chr +(6-11), SpkL +(15-29), R&W +(15-29), WdWs +(15-29), Riding +(5-9). If the party is in the countryside, it is immediately moved to the outskirts of the nearest city.
+
+Giles [45v, 35-99df, 15%]: heals End 40%, heals Str 10%, Agl -(4-7), weapon currently in use skill -(15-24), Stlh +(30-59), StrW +(50-89), WdWs +(5-9). Note that St. Giles temporarily reduces agility and certain weapons skills.
+
+Giles of Portugal [64v, 15-54df, 60%]: Alch +(40-59), Artf +(10-19), lot +(5-9), Per +(15-24). In addition, each prayer causes a-1 wound to strength, and -1 to virtue, which do not wear off after 24 hours.
+
+Godehard [39v, 15-59df, 55%]: heals End 30%, SpkL +(20-39), R&W +(25-49).
+
+Godfrey [55v, 25-99df, 40%]: heals End 20%, SpkC +(15-29), Artf +( 10-19), and helps prevent ambushes for seven days. During interactions, this saint may prevent fights with other people.
+
+Gottschalk [64v, 25-69df, 55%]: each weapon skill +(15-29), if nearest city is Wendish (Schleswig, LUbeck, Hamburg, Bremen, Rosrock and Wismar) Local Rep +(20-40) .
+
+Gregory Thaumaturg. [74v, 30-49df, 80%]: Chr +(8-15), Alch +(10-19), SpkC +(10-19), Artf +(20-39). During interactions this saint may sometimes cause impressive miracles that solve desperate or difficult problems.
+
+H
+Hedwig [16v, 15-99df, 10%]: Heal (skill) +(20-29), if nearest city is Silesian (Frankfurt an der Oder, Breslau, Olmutz and Teschen) Local Rep +(20-40). During interactions this saint may help you perceive the thoughts of nobles or other leaders.
+
+Henry [61v, 30-54df, 75%]: Int +(8-23), each weapon skill +(10-19).
+
+Heribert [30v, 20-84df, 35%]: Chr +(10-19), Str +(4-7). During interactions this saint may help you perceive evil in peasants.
+
+Herve [47v, 15-74df, 40%]: Per +(15-29). During interactions this saint may allow you to sense whether the other person is good or evil.
+
+Hildegard [13v, 25-99df, 25%]: Per +(20-59). In a few interaction situations, this saint allows you to glimpse something of the future.
+
+Hubert [34v, 50-99df, 50%]: WPol +(15-29), WThr +(15-29), WBow +(15-29), wlvIsD +(15-29), Stlh +(25-49), WdWs +(40-79). This saint sometimes allows you to avoid trouble in woodland encounters.
+
+I
+Illtyd [63v, 20-54df, 65%]: Chr +(15-29). SpkC +( 10-19), Ride +(5-9), each weapon skill +(10-19).
+
+Isidore [21v, 10-74df, 35%]: Chr +(8-15), SpkC +(5-9), StrW +(10-19). This saint may help interactions with farmers or peasants.
+
+Ita [85v, 10-39df, 70%]: heals End 50%, heals Str 100%, Chr +(8-15), Heal (skill) +(20-39).
+
+J
+James [25v, 12-71df, 40%]: heals End 20%, heals Str 10%, Str +(4-7), End +(4-7), Chr +(3-5), Virt +(20-34).
+
+Januarius [66v, 35-68df, 66%]: In interactions with animals this saint may prevent an attack.
+
+John of Bridlington [36v, 10-94df, 15%]: If praying for a man, heals End 30% and heals Str 10%; if praying for a woman, heals End 100%, heals Str 20%, End +(5-9), Str +(4-7).
+
+John Chrysostom [37v, 10-84df, 25%]: Chr +(8-15), Per -(6-11), SpkC +(30-59), SpkL +(30-59). Note that perception is actually reduced temporarily.
+
+John Climacus [20v, 40-99df, 30%]: each non-weapon skill increased by +(1-4), plus the target’s current virtue/5.
+
+John Nepolmuchen [22v, 15-84df, 30%]: Chr +(8-15), lnt +(6-11), SpkC +(20-39), StrW +(4-7). If nearest city is Prag Local Rep +(35-55), if nearest city is another in Bohemia (St. Joachimsthal, Burglitz, Kuttenberg, Brunn, Olmutz) Local Rep +(10-20). During interactions, this saint may force people to tell the truth. This can be very helpful in a number of countryside encounters.
+
+Joseph [27v, 35-99df, 35%]: Chr +(6-11), Artf +(30-59), StrW +(30-59).
+
+Jude [15v, 20-99df, 5%]: Each attribute +(4-8). Weapon currently in use skill +(5-24). each non-weapon skill +(6-11).
+
+Julian, Hospitaler [61v, 40-64df, 75%]: Ride +(6-11), WdWs +(20-39), Also, tbe party can cross impassable water for 24 hours.
+
+K
+Kessog [31v, 20-94df, 25%]: heals End 40%, heals Str 20%, Chr +(6-11), SpkC +(15-29), Heal (skill) +(10-19), Ride +(4-7).
+
+L
+Lasdislaus [51v, 25-64df, 60%]: Str +(4-7), Agi +(3-5), SpkC +(6-11), Ride +(10-19).
+
+Lawrence [20v, 30-99df, 10%]: heals End 100%, Chr +(12-19), SpkC +(10-19), StrW +(10-19).
+
+Lazarus [50v, 50-89df, 60%]: heals End 30%, heals Str 100%.
+
+Longinius [49v, 30-84df, 45%]: each weapon skill +(10-19).
+
+Lucy [77v, 40-74df, 65%]: heals End 100%, heals Str 100%, Per +(6-11).
+
+Luke [17v, 20-84df, 35%]: heals End 50%, heals Str 30%, Heal (skill) +(20-39).
+
+Lutgardis [60v, 35-84df, 50%]: Chr +(6-11), Per +(8-15), Virt +(6-17), End +(5-9). During some interactions, this saint may translate (fly) the party over obstacles such as walls.
+
+M
+Margaret [46v, 25-79df, 45%]: heals End 100%, heals Str 50%, each attribute +(3-6), each non-weapon skill +(5-10).
+
+Margaret of Cortona [52v, 25-99df, 10%]: heals End 100%, heals Str 40%, Heal (skill) +(20+39), SpkC +(10-19).
+
+Mark [35v, 25-84df, 40%]: Agl +(12-23), R&W +(15-29).
+
+Martin of Tours [69v, 25-59df, 65%]: heals End 30%, heals Str 30%, Chr +(8-15), Per +(12-19), SpkC +(25-49), Ride +(20-39). During interactions this saint may allow you to sense whether the other person is good or evil.
+
+Matthew [26v, 20-94df, 25%]: Int +(8-15), SpkL +(15-29), R&W +(25-49).
+
+Maurice [81v, 30-59df, 70%]: WEdg +(20-39), Alch +(10-19).
+
+Michael [72v, 25-69df, 55%]: Heal (skill) +(20-39), Chr +(12-19), weapons currently in use +20.
+
+Milburga [71v, 35-64df, 70%]: Heal (skill) +(20-39), Chr +(10-19), for the next 24 hours allows the party can move over impassable water. During some interactions this saint may translate (fly) the party over obstacles such as walls.
+
+Moses the Black [66v, 10-44df, 65%]: Each weapon skill +(15-29), Stlh +(20-79), WdWs +(10-19), Str +( 10-19).
+
+N
+Nicholas [49v, 25-69df, 55%]: End +(4-8), Chr +(6-11), WFll +(15-29), Local Rep at nearest city +(10-20).
+
+Nicolas of Tolentino [31v, 25-99df, 23%]: heals End 50%, heals Str 100%, Relg +(8-15), Heal (skill) +(12-23).
+
+O
+Odilia [25v, 20-79df, 40%]: Per +(6-11), if nearest city is in Alsace (Strassbourg or Basel) then Local Rep +( 15-25).
+
+Odo [47v, 30-69df, 60%]: Chr +(4-8). Per +(10-19), SpkC +(8-15), each weapon skill +(8-22),
+
+Olaf [18v, 15-94df, 20%]: heals End 30%, each weapon skill +(8-22).
+
+P
+Pantaleon [56v, 25-99df, 20%]: Heals End 30%. heals Str 30%, Chr +(6-11), Alch +(10-19), Heal (skill) +(15-29), Entire party armour thickness increased 10 against flame weapons. If the party is in the countryside, it is immediately moved to the outskirts of the nearest city. In interactions with animals this saint may prevent an attack.
+
+Patrick [22v, 25-99df, 15%]: Chr +(15-24), Str +(12-19), WEdg +(15-29), wImp +(15-29), WPol +(15-29), SpkC +(15-29), SpkL +(15-29), R&W +(15-29), and armour thickness increased by 2 against flame weapons.
+
+Paul [19v, 27-91df, 35%]: Int +(12-23), SpkC +(12-26), SpkL +(12-26), R&W +(15-29), Heal (skill) +(10-19).
+
+Paul the Simple [70v, 20-59df, 60%]: heals End 100%, heals Str 100%, Int halved (temporarily). However, in some interactions, this saint may help you see into the mind of another.
+
+Perpetua [16v, 40-99df, 10%]: Cht +(15-29), in interactions with animals this saint may prevent an attack.
+
+Peter [58v, 25-69df, 55%]: Str +(12-19), Chr +(8-15), SpkC +(10-19), SpkL +(10-19), Heal (skill) +(10-19), WEdg +(15-29), but Per halved (temporarily). If imprisoned, this saint may aid the party’s escape.
+
+Peter of Atroa [62v, 25-74df, 50%]: Int +(6-11), Per +(6-11), Alch +(10-19), Stlh +(40-79), Ride +(10-19). However, Local Rep in nearest city -(1-5).
+
+Polycarp [19v, 10-89df, 20%]: Improves armour thickness by 11 and adds 90 to armour quality of entire party when attacked by flame weapons.
+
+R
+Raphael [75v, 40-69df, 70%]: heals End 100%, heals Str 100%, Agl +(8-15), Pet +(6-11), Heal (skill) +(50-99).
+
+Raymond Penafort [67v, 10-59df, 50%]: Int +(15-29), R&W +(30-59). In addition, the parry can cross impassable water for 24 hours. The patron saint of lawyers, this saint’s ability to argue religious law can be useful in a few encounters.
+
+Raymond Lull [29v, 10-74df, 35%]: Int +(12-19), Alch +(20-39), R&W +(30-59). In addition, if End and/or Str are above 9, they are reduced to 9 (i.e., character receiving this benefit is also likely to suffer the equivalent of serious wounds).
+
+Reinold [27v, 25-79df, 45%]: heals End 30%, Alch +(6-17), Arrf +(35-69), Chr -(6-11). This saint is frequently useful in scaling walls.
+
+Roch [19v, 40-94df, 45%]: heals End 20%, heals Str 20%, Heal (skill) +(10-19), Artf +(8-15). This saint may help you cure the plague.
+
+S
+Sabas the Goth [64v, 25-74df, 50%]: heals End 100%, heals Str 100%, Chr +(10-19).
+
+Sebastian [28v, 15-99df, 10%]: heals End 10%, heals Str 10%, Agi +(12-19), WBow +(20-39), Ride +(10-19). This saint may help you cure the plague.
+
+Stanislaus [42v, 40-74df, 65%]: heals End 20%, heals Str 10%, Chr +(6-11), SpkC +(30-49), SpkL +(20-39).
+
+Stephen [27v, 20-89df, 30%]: Chr +(6-11), Int +(8-15), SpkC +(6-11), Ride +(10-19). weapon currently in use skill +(15-29), if party is in Pressburg Local Rep +(15-25).
+
+Swithbert [50v, 30-99df, 30%]: heals End 20%, heals Str 10%, Chr +(10-19), SpkC +(25-49).
+
+T
+Tarachus [50v, 40-99df, 30%]: heals End 40%, heals Str 20%, Chr +(6-11). In interactions with animals this saint may prevent an attack.
+
+Thalelaeus,Merciful [62v, 10-44df, 65%]: heals End 40%, heals Str 20%, Heal (skill) +(30-59).
+
+Theodore Tiro [38v, 25-84df, 40%]: Chr +(6-11), End +(4-8), wFli +(15-29), weapon currently in use skill +(15-24).
+
+Thomas the Apostle [24v, 10-85df, 24%]: Str +(4-8), End +(4-8), SpkC +(4-8), Heal (skill) +(10-19), Artf +(12-23), WdWs +(4-7).
+
+Thomas Aquinas [68v, 15-49df, 65%]: Int +(12-23), SpkC +(12-26), SpkL +(12-26), R&W +(15-29), Heal (skill) +(10-19).
+
+V
+Valentine [48v, 10-64df, 45%]: heals End 10%, heals Str 10%, Chr +(10-19), Stlh +( 6-11), Heal (skill) +(6-11), SpkC +(6-11).
+
+Victor o'Marseilles [68v, 30-89df, 40%]: heals End 100%, heals Str 20%, Chr +(8-15), SpkC +(10-19), weapon currently in use skill +(15-24).
+
+Vitus [48v, 40-74df, 65%]: Chr +(10-19), Agi +(12-23). If the party is in the countryside, it is immediately moved to the outskirts of the nearest city.
+
+W
+Wenceslaus [44v, 38-77df, 60%]: Str +(6-11), Int +(8-13), Per +(6-11), Ride +(8-15), weapon currently in use skill +(8-15). If nearest city is in Bohemia (Prag, St. ]oachimsthal, Burglitz. Kuttenbcrg, Brunn, Olmutz) Local Rep +(15-24).
+
+Wilfrid [28v, 18-99df, 15%]: heals End 20%, Chr +(6-11), SpkC +(20-39), Artf +(6-11), and helps prevent ambushes for seven days.
+
+Willehad [35v, 20-84df, 35%]: Agl +(8-15), Ride +(10-19), WdWs +(8-15), and helps prevent ambushes for seven davs.
+
+Willebald [50v, 25-69df, 55%]: Chr +(10-19), SpkC +(25-49), WdWs +(6-11).
+
+Williborord [43v, 15-59df, 55%]: Chr +(10-19), SpkC +(20-39), WdWs +(8-15).
+
+Wolfgang [24v, 20-84df, 35%]: Chr +(8-15), Int +(6-11), SpkC +(20-39), Ride +(6-11), WdWs +(6-11).
+
+Z
+Zita [23v, 10-94df, 15%]: Heals End 20%, heals Str 5%, Per +(6-11), StrW +(6-11). During interactions with servants, this saint may help you gain additional information.
+
+Notes
+The numbers in the brackets are the saint's Virtue requirement, the spending range of DF that can be spent in the prayer, and the base odds of a successful prayer.
+The DF spending ranges shown above have been adjusted from what was published. The minimum is as required by that particular saint. The maximum number in the range is now the maximum that could be spent considering the base odds.
+The description for Giles of Portugal is not carefully worded. He does not inflict permanent damage to a character. The "wound" is inflicted to the current Str, not the max Str (very important), and the lost Virt can be regained.
+Margaret performs her listed effects on women only. On men her only effect is to restore 10% of lost End and Str.
+Nicolas of Tolentino is not in the game. There are 136 Saints in total.
+Pantaleon does not teleport the party to the nearest city in the at-will manner of Gertrude and Vitus (though it may be possible in some cutscenes).
+The effect data for Paul the Apostle and Paul the Simple are switched in-game. Prayers for insight during cutscenes are still directed to Paul the Simple, but the prayer's mechanics are those of Paul the Apostle.
+If you try to stack a buff to a single stat using two saints (or inadvertently use two saints that both buff the team leaders stat over the course of a single day) then the later buff will replace the prior buff, however when both blessings are removed both buffs are subtracted from the effective value of that stat. This can result in damage to stats that are difficult to heal, like Int or Chr. Because there is no method in the game to increase the speed of recovery, nor saints to heal damage to these stats, they will rebound at a rate of about 1 per in game week (for Chr, Int seems to take longer if it heals at all)
+The actual Initial Success % changes as your virtue exceeds the base virtue required to invoke a saint. the formula for most saints is as follows (where >> is a right bit shift operation) :
+initial Success % = ( Character Virtue >> 1 ) - ( Listed Virtue >> 1 ) + Base Success %
+
+Because of the change in initial Success %, the max cost to maximize success is
+99DF - Calculated Initial Success %
+
+Not all Saints Adhere to the above formulas though. Januarius initial success does not seem to change from 66% under any circumstances (besides perhaps his saint day) and Lazarus instead uses the following (perhaps the devs thought he'd be OP if too cheap?):
+initial Success % = ( Character Virtue >> 3 ) - ( Listed Virtue >> 4 ) + Base Success %

@@ -320,6 +320,10 @@ def write_file(path, header, party, original_data):
             buf[b + 0x64 + j] = char['attrs_max'][k] & 0xFF
         for j, k in enumerate(SKILL_KEYS):
             buf[b + 0x6B + j] = char['skills'][k] & 0xFF
+        saint_bits = bytes(char.get('saint_bits', b'\x00' * 20))[:20].ljust(20, b'\x00')
+        formula_bits = bytes(char.get('formula_bits', b'\x00' * 22))[:22].ljust(22, b'\x00')
+        buf[b + 0x80:b + 0x94] = saint_bits
+        buf[b + 0x94:b + 0xAA] = formula_bits
         # Equipment bytes
         eq = char.get('equip', {})
         for fname, foff, _ in EQUIP_FIELDS:

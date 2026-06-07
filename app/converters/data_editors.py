@@ -1,4 +1,5 @@
 import copy
+import html
 import os
 import re
 
@@ -23,6 +24,7 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTextBrowser,
     QVBoxLayout,
     QWidget,
     QMessageBox,
@@ -32,6 +34,7 @@ from PySide6.QtWidgets import (
 from vendor.darklands.format_cty import CITY_CONTENT_FLAGS, city_content_label
 from vendor.darklands.reader_loc import locTypes
 from app.file_ops import backup_existing_file, backup_label
+from app.saint_cluebook import saint_clue_entry, saint_clue_notes
 from app.validation import filter_issues, summarize_issues, validate_world_data
 
 
@@ -1278,6 +1281,7 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._original_saints = []
         self._original_formulae = []
         self._original_alchemy = []
+        self._saint_cluebook_notes = saint_clue_notes()
         self._loading = False
         self._dirty = False
         self._item_combo_syncing = False
@@ -1336,10 +1340,13 @@ class ItemsConverter(QWidget, _DirtyMixin):
     def _build_saints_tab(self):
         widget = QWidget()
         lay = QVBoxLayout(widget)
-        self._saints_table = QTableWidget(0, 3)
-        self._saints_table.setHorizontalHeaderLabels(["#", "Name", "Short"])
+        self._saints_table = QTableWidget(0, 6)
+        self._saints_table.setHorizontalHeaderLabels(["#", "Name", "Short", "Virtue", "DF Range", "Base %"])
         self._saints_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self._saints_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self._saints_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        self._saints_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        self._saints_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
         self._saints_table.itemChanged.connect(self._saints_changed)
         self._saints_table.currentCellChanged.connect(self._on_saint_select)
         lay.addWidget(self._saints_table)
@@ -1347,6 +1354,16 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._saint_desc = QPlainTextEdit()
         self._saint_desc.textChanged.connect(self._saint_desc_changed)
         lay.addWidget(self._saint_desc, stretch=1)
+        clue_row = QHBoxLayout()
+        clue_row.addWidget(QLabel("Cluebook:"))
+        clue_row.addStretch()
+        notes_btn = QPushButton("Show Shared Notes")
+        notes_btn.clicked.connect(self._show_saint_cluebook_notes)
+        clue_row.addWidget(notes_btn)
+        lay.addLayout(clue_row)
+        self._saint_clue = QTextBrowser()
+        self._saint_clue.setMinimumHeight(170)
+        lay.addWidget(self._saint_clue, stretch=1)
         return widget
 
     def _build_formulae_tab(self):
@@ -1497,9 +1514,18 @@ class ItemsConverter(QWidget, _DirtyMixin):
     def _fill_saints(self):
         self._saints_table.setRowCount(len(self._saints))
         for r, saint in enumerate(self._saints):
-            for c, val in enumerate((str(r), saint.get("name", ""), saint.get("short_name", ""))):
+            clue = saint_clue_entry(saint.get("name", ""))
+            row_values = (
+                str(r),
+                saint.get("name", ""),
+                saint.get("short_name", ""),
+                str(clue["virtue_required"]) if clue else "",
+                f'{clue["df_min"]}-{clue["df_max"]}' if clue else "",
+                f'{clue["base_success_percent"]}%' if clue else "",
+            )
+            for c, val in enumerate(row_values):
                 cell = QTableWidgetItem(val)
-                if c == 0:
+                if c == 0 or c >= 3:
                     cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self._saints_table.setItem(r, c, cell)
         if self._saints:
@@ -1608,6 +1634,31 @@ class ItemsConverter(QWidget, _DirtyMixin):
         row = self._saints_table.currentRow()
         edited = 0 <= row < len(self._saints) and self._saints[row].get("description", "") != self._original_saints[row].get("description", "")
         _set_widget_edited(self._saint_desc, edited)
+
+    def _saint_clue_html(self, saint: dict) -> str:
+        clue = saint_clue_entry(saint.get("name", ""))
+        if not clue:
+            return (
+                "<p style='color:#888'>No cluebook entry matched this saint name.</p>"
+            )
+        return (
+            f"<h3 style='margin-bottom:6px'>{html.escape(clue['name'])}</h3>"
+            f"<p><b>Requirement:</b> Virtue {clue['virtue_required']}</p>"
+            f"<p><b>DF Range:</b> {clue['df_min']}-{clue['df_max']}</p>"
+            f"<p><b>Base Success:</b> {clue['base_success_percent']}%</p>"
+            f"<p><b>Effects:</b> {html.escape(clue['effects'])}</p>"
+        )
+
+    def _show_saint_cluebook_notes(self):
+        notes = "".join(
+            f"<li>{html.escape(note)}</li>"
+            for note in self._saint_cluebook_notes
+        )
+        QMessageBox.information(
+            self,
+            "Saint Cluebook Notes",
+            f"<ul>{notes}</ul>" if notes else "No shared cluebook notes loaded.",
+        )
 
     def _refresh_formula_highlights(self):
         issue_counts = self._formula_issue_counts()
@@ -1747,7 +1798,9 @@ class ItemsConverter(QWidget, _DirtyMixin):
                 if self._saints_table.item(row, col) is not None
             )
             desc = self._saints[row].get("description", "").lower() if row < len(self._saints) else ""
-            self._saints_table.setRowHidden(row, bool(needle) and needle not in (hay + " " + desc))
+            clue = saint_clue_entry(self._saints[row].get("name", "")) if row < len(self._saints) else None
+            effects = clue.get("effects", "").lower() if clue else ""
+            self._saints_table.setRowHidden(row, bool(needle) and needle not in (hay + " " + desc + " " + effects))
         for row in range(self._formula_table.rowCount()):
             hay = " ".join(
                 self._formula_table.item(row, col).text().lower()
@@ -1790,6 +1843,19 @@ class ItemsConverter(QWidget, _DirtyMixin):
         row, col = item.row(), item.column()
         if col == 1:
             self._saints[row]["name"] = item.text()
+            clue = saint_clue_entry(item.text())
+            self._loading = True
+            try:
+                if self._saints_table.item(row, 3):
+                    self._saints_table.item(row, 3).setText(str(clue["virtue_required"]) if clue else "")
+                if self._saints_table.item(row, 4):
+                    self._saints_table.item(row, 4).setText(f'{clue["df_min"]}-{clue["df_max"]}' if clue else "")
+                if self._saints_table.item(row, 5):
+                    self._saints_table.item(row, 5).setText(f'{clue["base_success_percent"]}%' if clue else "")
+                if row == self._saints_table.currentRow():
+                    self._saint_clue.setHtml(self._saint_clue_html(self._saints[row]))
+            finally:
+                self._loading = False
         elif col == 2:
             self._saints[row]["short_name"] = item.text()
         else:
@@ -1802,6 +1868,7 @@ class ItemsConverter(QWidget, _DirtyMixin):
         self._loading = True
         try:
             self._saint_desc.setPlainText(self._saints[row].get("description", ""))
+            self._saint_clue.setHtml(self._saint_clue_html(self._saints[row]))
         finally:
             self._loading = False
         self._refresh_highlights()
