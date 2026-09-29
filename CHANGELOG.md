@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.91b2
+
+- Added an item ID/name picker to the save-game editor for adding and removing character inventory items, with quantity and quality controls.
+- Corrected save inventory display to use zero-based item IDs and the stored active-item count, including valid item ID `0`.
+- Fixed save writing to persist the active-item count, and show the first character's details immediately after loading a save.
+- Made the in-game save name prominent in the save editor and added editable year, month, day, and hour fields.
+
 ## 0.91b1
 
 - Added saint cluebook reference data to the saints editor, including virtue, DF range, base success chance, and shared cluebook notes.

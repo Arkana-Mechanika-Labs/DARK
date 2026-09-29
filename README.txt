@@ -1,5 +1,5 @@
 DARK: Darklands Authoring & Resource Kit
-Version 0.91b1
+Version 0.91b2
 2026
 By Arkana Mechanika Labs
 
@@ -9,7 +9,7 @@ DARK is a desktop workbench for inspecting, editing, validating, and researching
 Darklands data files.
 
 Current scope includes:
-- save files
+- save files, including character inventories, saint knowledge, save names, and dates
 - world data (cities, locations, descriptions, items, saints, formulae, enemies)
 - saint cluebook reference notes and save-game saint assignment editing
 - dialog cards and message archives

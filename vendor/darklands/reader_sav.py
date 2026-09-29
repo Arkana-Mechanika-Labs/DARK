@@ -19,7 +19,7 @@ SaveHeader field offsets (relative to file start 0x00)
 -------------------------------------------------------
   0x00 / 12   currentLocationName
   0x15 / 23   label  (save-slot label)
-  0x68 /  8   Date struct
+  0x68 /  8   Date struct  { year:2, month:2 (zero-based), day:2, hour:2 }
   0x70 /  6   Money  { florins:2, groschen:2, pfennigs:2 }
   0x7A /  2   reputation  (signed word)
   0x7C /  2   locationId
@@ -139,10 +139,12 @@ def _write_cstr(buf, off, s, length):
 # ── parsers ───────────────────────────────────────────────────────────────────
 
 def read_header(data):
+    year, month, day, hour = struct.unpack_from('<4H', data, 0x68)
     return {
         'location':    _cstr(data, 0x00, 12),
         'label':       _cstr(data, 0x15, 23),
         'curr_date_raw': data[0x68:0x70],
+        'date':        {'year': year, 'month': month, 'day': day, 'hour': hour},
         'florins':     _u16(data, 0x70),
         'groschen':    _u16(data, 0x72),
         'pfennigs':    _u16(data, 0x74),
@@ -289,6 +291,9 @@ def write_file(path, header, party, original_data):
 
     # Header
     _write_cstr(buf, 0x15, header['label'],      23)
+    date = header.get('date')
+    if date is not None:
+        struct.pack_into('<4H', buf, 0x68, *(int(date[key]) for key in ('year', 'month', 'day', 'hour')))
     struct.pack_into('<H', buf, 0x70, header['florins']     & 0xFFFF)
     struct.pack_into('<H', buf, 0x72, header['groschen']    & 0xFFFF)
     struct.pack_into('<H', buf, 0x74, header['pfennigs']    & 0xFFFF)
@@ -320,6 +325,7 @@ def write_file(path, header, party, original_data):
             buf[b + 0x64 + j] = char['attrs_max'][k] & 0xFF
         for j, k in enumerate(SKILL_KEYS):
             buf[b + 0x6B + j] = char['skills'][k] & 0xFF
+        struct.pack_into('<H', buf, b + 0x7E, char['num_items'] & 0xFFFF)
         saint_bits = bytes(char.get('saint_bits', b'\x00' * 20))[:20].ljust(20, b'\x00')
         formula_bits = bytes(char.get('formula_bits', b'\x00' * 22))[:22].ljust(22, b'\x00')
         buf[b + 0x80:b + 0x94] = saint_bits

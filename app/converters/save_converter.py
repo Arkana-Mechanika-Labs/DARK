@@ -75,7 +75,8 @@ class SaveGameConverter(QWidget):
         self._events:   list | None = None
         self._locations: list | None = None
         self._raw:      bytes | None = None
-        self._item_names: list[str]  = []   # indexed by item id-1
+        self._item_defs: list[dict] = []
+        self._item_names: list[str] = []  # indexed by zero-based item ID
         self._saint_names: list[str] = []
         self._world_locations: list[dict] = []
         self._quest_map_cache: QPixmap | None = None
@@ -161,6 +162,36 @@ class SaveGameConverter(QWidget):
         fl = QFormLayout(info_box)
         fl.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
 
+        self._pf['label'] = QLineEdit()
+        self._pf['label'].setMaxLength(22)
+        self._pf['label'].setToolTip("The name shown on Darklands' Load Game screen.")
+        self._pf['label'].textEdited.connect(lambda: self._mark_dirty())
+        fl.addRow("Save Name (in-game):", self._pf['label'])
+
+        self._pf['year'] = QSpinBox()
+        self._pf['year'].setRange(0, 65535)
+        self._pf['year'].valueChanged.connect(lambda: self._mark_dirty())
+        fl.addRow("Year:", self._pf['year'])
+
+        self._pf['month'] = QComboBox()
+        for month_index, month_name in enumerate((
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+        )):
+            self._pf['month'].addItem(month_name, month_index)
+        self._pf['month'].currentIndexChanged.connect(lambda: self._mark_dirty())
+        fl.addRow("Month:", self._pf['month'])
+
+        self._pf['day'] = QSpinBox()
+        self._pf['day'].setRange(0, 65535)
+        self._pf['day'].valueChanged.connect(lambda: self._mark_dirty())
+        fl.addRow("Day:", self._pf['day'])
+
+        self._pf['hour'] = QSpinBox()
+        self._pf['hour'].setRange(0, 65535)
+        self._pf['hour'].valueChanged.connect(lambda: self._mark_dirty())
+        fl.addRow("Hour (24h):", self._pf['hour'])
+
         self._pf['location'] = QLabel()
         fl.addRow("Location:", self._pf['location'])
 
@@ -198,11 +229,6 @@ class SaveGameConverter(QWidget):
         self._pf['party_order'].setPlaceholderText("e.g. 0,1,2,3,4")
         self._pf['party_order'].textEdited.connect(lambda: self._mark_dirty())
         fl.addRow("Walking Order:", self._pf['party_order'])
-
-        self._pf['label'] = QLineEdit()
-        self._pf['label'].setMaxLength(22)
-        self._pf['label'].textEdited.connect(lambda: self._mark_dirty())
-        fl.addRow("Save Label:", self._pf['label'])
 
         lay.addWidget(info_box)
 
@@ -381,9 +407,11 @@ class SaveGameConverter(QWidget):
         try:
             from darklands.reader_lst import readData
             items, saints, _ = readData(self.dl_path)
+            self._item_defs = items
             self._item_names = [it.get('name', '') for it in items]
             self._saint_names = [saint.get('name', '') for saint in saints]
         except Exception:
+            self._item_defs = []
             self._item_names = []
             self._saint_names = []
         try:
@@ -419,6 +447,9 @@ class SaveGameConverter(QWidget):
         finally:
             self._loading = False
 
+        if party['characters']:
+            self._build_char_form(0)
+
         n = party['n_defined']
         self._status_lbl.setText(
             f"{os.path.basename(path)}  —  {n} character{'s' if n != 1 else ''}  —  saved"
@@ -430,6 +461,16 @@ class SaveGameConverter(QWidget):
         pf = self._pf
         pf['location'].setText(h.get('location', ''))
         pf['label'].setText(h.get('label', ''))
+        date = h.get('date', {})
+        pf['year'].setValue(date.get('year', 0))
+        month = date.get('month', 0)
+        while pf['month'].count() > 12:
+            pf['month'].removeItem(12)
+        if month >= 12:
+            pf['month'].addItem(f"Unknown ({month})", month)
+        pf['month'].setCurrentIndex(month if month < 12 else pf['month'].count() - 1)
+        pf['day'].setValue(date.get('day', 0))
+        pf['hour'].setValue(date.get('hour', 0))
         pf['location_id'].setValue(h.get('location_id', 0))
         coords = h.get('coords', (0, 0))
         pf['coord_x'].setValue(coords[0])
@@ -810,32 +851,128 @@ class SaveGameConverter(QWidget):
         self._char_form_lay.addWidget(know_box)
 
         # ── Inventory ─────────────────────────────────────────────────────
-        active_items = [it for it in char.get('items', []) if it.get('id', 0)]
-        inv_box = QGroupBox(f"Inventory  ({len(active_items)} items, "
-                            f"{char.get('num_items', 0)} declared active)")
+        count = min(char.get('num_items', 0), 64)
+        active_items = char.get('items', [])[:count]
+        inv_box = QGroupBox(f"Inventory ({count}/64 slots)")
         inv_lay = QVBoxLayout(inv_box)
 
-        inv_table = QTableWidget(len(active_items), 5)
-        inv_table.setHorizontalHeaderLabels(["ID", "Name", "Qty", "Quality", "Weight"])
-        inv_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        inv_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        inv_table.setFont(QFont("Courier New", 8))
-        inv_table.setMaximumHeight(220)
+        self._inv_table = QTableWidget(len(active_items), 6)
+        self._inv_table.setHorizontalHeaderLabels(["Slot", "ID", "Name", "Qty", "Quality", "Weight"])
+        self._inv_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self._inv_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self._inv_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self._inv_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self._inv_table.setFont(QFont("Courier New", 8))
+        self._inv_table.setMaximumHeight(220)
         for r, it in enumerate(active_items):
             iid = it.get('id', 0)
-            inv_table.setItem(r, 0, QTableWidgetItem(str(iid)))
-            inv_table.setItem(r, 1, QTableWidgetItem(self._item_name(iid)))
-            inv_table.setItem(r, 2, QTableWidgetItem(str(it.get('quantity', 1))))
-            inv_table.setItem(r, 3, QTableWidgetItem(str(it.get('quality', 0))))
-            inv_table.setItem(r, 4, QTableWidgetItem(str(it.get('weight', 0))))
-        inv_lay.addWidget(inv_table)
+            self._inv_table.setItem(r, 0, QTableWidgetItem(str(r + 1)))
+            self._inv_table.setItem(r, 1, QTableWidgetItem(str(iid)))
+            self._inv_table.setItem(r, 2, QTableWidgetItem(self._item_name(iid)))
+            self._inv_table.setItem(r, 3, QTableWidgetItem(str(it.get('quantity', 1))))
+            self._inv_table.setItem(r, 4, QTableWidgetItem(str(it.get('quality', 0))))
+            self._inv_table.setItem(r, 5, QTableWidgetItem(str(it.get('weight', 0))))
+        inv_lay.addWidget(self._inv_table)
+
+        controls = QHBoxLayout()
+        self._inv_picker = QComboBox()
+        self._inv_picker.setEditable(True)
+        self._inv_picker.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self._inv_picker.setMinimumWidth(220)
+        for item_id, item in enumerate(self._item_defs):
+            self._inv_picker.addItem(f"{item_id:03d} - {item.get('name', '(unnamed)')}", item_id)
+        if self._inv_picker.completer():
+            self._inv_picker.completer().setFilterMode(Qt.MatchFlag.MatchContains)
+        controls.addWidget(self._inv_picker, 1)
+
+        controls.addWidget(QLabel("Qty:"))
+        self._inv_qty = QSpinBox()
+        self._inv_qty.setRange(1, 255)
+        self._inv_qty.setValue(1)
+        controls.addWidget(self._inv_qty)
+
+        controls.addWidget(QLabel("Quality:"))
+        self._inv_quality = QSpinBox()
+        self._inv_quality.setRange(0, 255)
+        controls.addWidget(self._inv_quality)
+        self._inv_picker.currentIndexChanged.connect(self._inventory_picker_changed)
+        self._inventory_picker_changed(self._inv_picker.currentIndex())
+
+        add_button = QPushButton("Add Item")
+        add_button.setEnabled(bool(self._item_defs) and count < 64)
+        add_button.clicked.connect(lambda _=False, ci=char_idx: self._inventory_add(ci))
+        self._inv_picker.editTextChanged.connect(
+            lambda: add_button.setEnabled(count < 64 and self._selected_inventory_id() is not None)
+        )
+        controls.addWidget(add_button)
+
+        remove_button = QPushButton("Remove Selected")
+        remove_button.setEnabled(False)
+        remove_button.clicked.connect(lambda _=False, ci=char_idx: self._inventory_remove(ci))
+        self._inv_table.itemSelectionChanged.connect(
+            lambda: remove_button.setEnabled(bool(self._inv_table.selectedItems()))
+        )
+        controls.addWidget(remove_button)
+        inv_lay.addLayout(controls)
         self._char_form_lay.addWidget(inv_box)
         self._char_form_lay.addStretch()
 
     def _item_name(self, item_id: int) -> str:
-        if item_id and 1 <= item_id <= len(self._item_names):
-            return self._item_names[item_id - 1]
-        return f"(#{item_id})" if item_id else ""
+        if 0 <= item_id < len(self._item_names):
+            return self._item_names[item_id]
+        return f"(unknown ID {item_id})"
+
+    def _inventory_picker_changed(self, index: int):
+        if 0 <= index < len(self._item_defs):
+            self._inv_quality.setValue(int(self._item_defs[index].get('quality', 0)))
+
+    def _selected_inventory_id(self) -> int | None:
+        index = self._inv_picker.currentIndex()
+        if 0 <= index < len(self._item_defs) and self._inv_picker.currentText() == self._inv_picker.itemText(index):
+            return index
+        return None
+
+    def _inventory_add(self, char_idx: int):
+        if self._party is None:
+            return
+        char = self._party['characters'][char_idx]
+        count = char['num_items']
+        item_id = self._selected_inventory_id()
+        if not 0 <= count < 64 or item_id is None:
+            return
+        definition = self._item_defs[item_id]
+        char['items'][count] = {
+            'id': item_id,
+            'type': int(definition.get('type', 0)),
+            'quality': self._inv_quality.value(),
+            'quantity': self._inv_qty.value(),
+            'weight': int(definition.get('weight', 0)),
+            '_slot': count,
+        }
+        char['num_items'] = count + 1
+        self._mark_dirty()
+        self._build_char_form(char_idx)
+        self._inv_table.selectRow(count)
+
+    def _inventory_remove(self, char_idx: int):
+        if self._party is None:
+            return
+        char = self._party['characters'][char_idx]
+        count = char['num_items']
+        row = self._inv_table.currentRow()
+        if not 0 <= row < count <= 64:
+            return
+        for slot in range(row, count - 1):
+            char['items'][slot] = {**char['items'][slot + 1], '_slot': slot}
+        char['items'][count - 1] = {
+            'id': 0, 'type': 0, 'quality': 0, 'quantity': 0, 'weight': 0,
+            '_slot': count - 1,
+        }
+        char['num_items'] = count - 1
+        self._mark_dirty()
+        self._build_char_form(char_idx)
+        if char['num_items']:
+            self._inv_table.selectRow(min(row, char['num_items'] - 1))
 
     def _saint_name(self, saint_idx: int) -> str:
         if 0 <= saint_idx < len(self._saint_names):
@@ -932,6 +1069,12 @@ class SaveGameConverter(QWidget):
     def _collect_header(self):
         pf = self._pf
         self._header['label']       = pf['label'].text()
+        self._header['date'] = {
+            'year': pf['year'].value(),
+            'month': pf['month'].currentData(),
+            'day': pf['day'].value(),
+            'hour': pf['hour'].value(),
+        }
         self._header['location_id'] = pf['location_id'].value()
         self._header['coords']      = (pf['coord_x'].value(), pf['coord_y'].value())
         self._header['curr_menu']   = pf['curr_menu'].value()
