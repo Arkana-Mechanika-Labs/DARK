@@ -75,6 +75,13 @@ a = Analysis(
     noarchive=False,
 )
 
+# Qt expects the Windows ICU exports. A Poppler ICU DLL on the build PATH has
+# the same filename but versioned exports, and breaks Qt in frozen builds.
+a.binaries = [
+    entry for entry in a.binaries
+    if os.path.basename(entry[0]).lower() not in {"icuuc.dll", "icudt78.dll"}
+]
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)  # noqa: F821
 
 exe = EXE(  # noqa: F821
