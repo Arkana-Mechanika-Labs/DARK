@@ -9,7 +9,7 @@ Desktop workbench for inspecting, editing, validating, and researching **Darklan
 DARK is built to make Darklands format work practical in one place instead of scattering it across one-off scripts and notes.
 
 Current scope includes:
-- save files, including character inventories, saint knowledge, in-game save names, and dates
+- save files, including character inventories, saint knowledge, local reputation, in-game save names, and dates
 - world data: cities, locations, descriptions, items, saints, formulae, enemies
 - saint cluebook reference notes inside the saints editor and save-game saint assignment editing
 - dialog cards and `MSGFILES`
@@ -35,7 +35,7 @@ Current scope includes:
 
 ## Status
 
-This project is currently **0.91b2**.
+This project is currently **0.91b3**.
 
 Large parts of the app are already useful, but some areas are still experimental or under active research. In particular, some file families are supported only partially, and research-oriented placeholders still exist for formats that are not yet fully integrated.
 

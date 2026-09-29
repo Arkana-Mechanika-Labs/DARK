@@ -325,6 +325,7 @@ class SaveGameConverter(QWidget):
         self._locs_table = QTableWidget(0, 3)
         self._locs_table.setHorizontalHeaderLabels(["#", "Name", "Local Reputation"])
         self._locs_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self._locs_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self._locs_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._locs_table.setFont(QFont("Courier New", 9))
         lay.addWidget(self._locs_table)
@@ -516,7 +517,14 @@ class SaveGameConverter(QWidget):
         for r, loc in enumerate(locations):
             self._locs_table.setItem(r, 0, QTableWidgetItem(str(r + 1)))
             self._locs_table.setItem(r, 1, QTableWidgetItem(loc.get('name', '')))
-            self._locs_table.setItem(r, 2, QTableWidgetItem(str(loc.get('local_reputation', 0))))
+            reputation = QSpinBox()
+            reputation.setRange(-32768, 32767)
+            reputation.setValue(loc.get('local_reputation', 0))
+            reputation.setToolTip("Local reputation stored in this save for this location.")
+            reputation.valueChanged.connect(
+                lambda value, row=r: self._location_rep_changed(row, value)
+            )
+            self._locs_table.setCellWidget(r, 2, reputation)
         if events:
             self._events_table.selectRow(0)
             self._show_event_detail(0)
@@ -1059,6 +1067,12 @@ class SaveGameConverter(QWidget):
             self._cf['saints_known_count'].setText(str(count))
         self._mark_dirty()
 
+    def _location_rep_changed(self, row: int, value: int):
+        if self._loading or self._locations is None:
+            return
+        self._locations[row]['local_reputation'] = value
+        self._mark_dirty()
+
     def _on_known_saint_selected(self, row: int):
         if row < 0 or row >= len(self._saint_names):
             return
@@ -1120,7 +1134,7 @@ class SaveGameConverter(QWidget):
         try:
             self._collect_header()
             from darklands.reader_sav import write_file
-            write_file(path, self._header, self._party, self._raw)
+            write_file(path, self._header, self._party, self._raw, self._locations)
             with open(path, 'rb') as f:
                 self._raw = f.read()
             self._dirty    = False

@@ -266,6 +266,7 @@ def read_events(data, party):
                 'type':             _u16(raw, 0x00),
                 'local_reputation': _i16(raw, 0x12),
                 'name':             _cstr(raw, 0x26, 20),
+                '_offset':          b,
                 '_raw':             raw,
             })
             b += LOCATION_SIZE
@@ -285,7 +286,7 @@ def read_file(path):
 
 # ── writers ───────────────────────────────────────────────────────────────────
 
-def write_file(path, header, party, original_data):
+def write_file(path, header, party, original_data, locations=None):
     """Patch modified fields back into a copy of original_data and write."""
     buf = bytearray(original_data)
 
@@ -344,6 +345,13 @@ def write_file(path, header, party, original_data):
             buf[off + 3] = item['quality']  & 0xFF
             buf[off + 4] = item['quantity'] & 0xFF
             buf[off + 5] = item['weight']   & 0xFF
+
+    if locations is not None:
+        for location in locations:
+            offset = location['_offset'] + 0x12
+            if not 0 <= offset <= len(buf) - 2:
+                raise ValueError(f"Location reputation offset outside save: {offset}")
+            struct.pack_into('<h', buf, offset, int(location['local_reputation']))
 
     with open(path, 'wb') as f:
         f.write(buf)

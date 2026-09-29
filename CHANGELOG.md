@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.91b3
+
+- Added editable local reputation values for visited locations in the save-game editor, with save support.
+
 ## 0.91b2
 
 - Fixed the packaged Windows build failing to import QtWidgets when the build environment contains an incompatible ICU DLL.
